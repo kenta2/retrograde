@@ -62,7 +62,9 @@ data Knight = NoKnight | Knight deriving (Show);
 data Alfil = NoAlfil | Alfil deriving (Show);
 data Dabbaba = NoDabbaba | Dabbaba_single | Dabbaba_rider deriving (Show);
 data Royal = Commoner | Royal deriving (Show);
-data Color = White | Black deriving (Show, Eq);
+
+-- | Maximizing or Minimizing the Value of a position
+data Color = Biggerizer | Smallerizer deriving (Show, Eq);
 
 data Piece = Piece Royal Orthogonal Diagonal Knight Alfil Dabbaba Color deriving (Show);
 
@@ -85,7 +87,7 @@ test :: Position;
 test = array (Piecenum 0, Piecenum 1) [(Piecenum 0,Just $ Location (0,0)), (Piecenum 1,Just $ Location (7,7))];
 
 test_directory :: Directory;
-test_directory = listArray (Piecenum 0, Piecenum 1) [queen White, rook Black];
+test_directory = listArray (Piecenum 0, Piecenum 1) [queen Biggerizer, rook Smallerizer];
 
 type Offset = (Integer,Integer);
 
