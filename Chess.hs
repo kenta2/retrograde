@@ -4,10 +4,15 @@ import Data.List;
 import Control.Monad;
 import Data.Maybe;
 import Data.Array.IArray;
+import Debug.Trace;
+
+-- to avoid the redundancy warning
+trace_placeholder :: ();
+trace_placeholder = trace "trace" ();
 
 type Position = Array Piecenum (Maybe Location);
 newtype Location = Location Offset deriving (Eq, Ord, Ix, Show);
-newtype Piecenum = Piecenum Integer deriving (Eq,Ord,Ix, Show);
+newtype Piecenum = Piecenum Integer deriving (Eq, Ord, Ix, Show);
 
 data Orthogonal = NoOrthogonal | Wazir | Rook deriving (Show);
 data Diagonal = NoDiagonal | Ferz | Bishop deriving (Show);
@@ -200,7 +205,8 @@ retrograde_positions dir (pos, color) = let
  let { pos2 = pos // [(i,Just new_loc)]; };
  uncapture :: [(Piecenum, Maybe Location)] <- [] : do {
   (i2, ml) <- assocs pos2;
-  guard $ color == othercolor;
+
+  guard $ (get_color $ dir ! i2) == othercolor;
   guard $ isNothing ml;
   return [(i2, pos ! i)]; -- ^old position
  };
