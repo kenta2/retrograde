@@ -3,7 +3,6 @@ module Retrograde where {
 import Data.List;
 import Control.Monad(liftM);
 import Data.Maybe;
-import qualified Data.Tuple as Tuple;
 
 mapReduce :: forall a b c v. Ord b => (a -> [(b,v)]) -> (b -> [(v,a)] -> [c]) -> [a] -> [c];
 mapReduce mapfn redfn l = concatMap (uncurry redfn) $ group2nd $ do {
@@ -12,8 +11,21 @@ mapReduce mapfn redfn l = concatMap (uncurry redfn) $ group2nd $ do {
  return (x,y);
 };
 
-group2nd :: (Ord b) => [(a,(b,v))] -> [(b,[(v,a)])];
-group2nd = map (\l -> (fst $ fst $ head l, zip (map (snd . fst) l) $ map snd l)) . groupBy (eq_ing $ fst . fst) . sortOn (fst . fst) . map Tuple.swap;
+group2nd :: forall a b v. (Ord b) => [(a,(b,v))] -> [(b,[(v,a)])];
+group2nd l = let {
+getb :: (a,(b,v)) -> b;
+getb (_,(b1,_))=b1;
+geta :: (a,(b,v)) -> a;
+geta (a1,_)=a1;
+getv :: (a,(b,v)) -> v;
+getv (_,(_,v1)) = v1;
+l2 :: [(a,(b,v))];
+l2 = sortOn getb l;
+l3 :: [[(a,(b,v))]];
+l3 = groupBy (eq_ing getb) l2;
+rearrange :: [(a,(b,v))] -> (b, [(v,a)]);
+rearrange l4 = (getb $ head l4, zip (map getv l4) (map geta l4));
+} in map rearrange l3;
 
 -- cf cData.Ord.comparing
 eq_ing :: Eq b => (a -> b) -> a -> a -> Bool;
