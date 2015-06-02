@@ -24,15 +24,14 @@ type Position = Array Piecenum (Maybe Location);
 newtype Location = Location Offset deriving (Eq, Ord, Ix, Show);
 newtype Piecenum = Piecenum Integer deriving (Eq, Ord, Ix, Show);
 
-data Orthogonal = NoOrthogonal | Wazir | Rook deriving (Show);
-data Diagonal = NoDiagonal | Ferz | Bishop deriving (Show);
-data Knight = NoKnight | Knight deriving (Show);
-data Alfil = NoAlfil | Alfil deriving (Show);
-data Dabbaba = NoDabbaba | Dabbaba_single | Dabbaba_rider deriving (Show);
-data Royal = Commoner | Royal deriving (Show);
+data Orthogonal = NoOrthogonal | Wazir | Rook deriving (Show, Eq);
+data Diagonal = NoDiagonal | Ferz | Bishop deriving (Show, Eq);
+data Knight = NoKnight | Knight deriving (Show, Eq);
+data Alfil = NoAlfil | Alfil deriving (Show, Eq);
+data Dabbaba = NoDabbaba | Dabbaba_single | Dabbaba_rider deriving (Show,Eq);
+data Royal = Commoner | Royal deriving (Show, Eq);
 
-
-data Piece = Piece Royal Orthogonal Diagonal Knight Alfil Dabbaba Color deriving (Show);
+data Piece = Piece Royal Orthogonal Diagonal Knight Alfil Dabbaba Color deriving (Show, Eq);
 
 king :: Color -> Piece;
 king = Piece Royal Wazir Ferz NoKnight NoAlfil NoDabbaba;
@@ -291,12 +290,32 @@ gen_1 = do_mapreduce test_directory gen_0;
 gen_2 :: [Entry];
 gen_2 = do_mapreduce test_directory $ gen_0 ++ gen_1;
 
-gens :: [Entry] -> [Entry];
-gens l = l ++ do_mapreduce test_directory l;
+iterate_mapreduce :: [Entry] -> [[Entry]];
+iterate_mapreduce start = let {
+more = do_mapreduce test_directory start;
+} in if null more then []
+else more:iterate_mapreduce (start ++ more);
 
-until_fixed :: Eq a => [a] -> [a];
-until_fixed (p:rest) = if (p==head rest)
-then [p] else p:until_fixed rest;
-until_fixed _ = error "too short list";
+display_piece :: Piece -> String;
+display_piece p = if p == king Biggerizer then "K"
+else if p == king Smallerizer then "k"
+else if p == queen Biggerizer then "Q"
+else if p == rook Smallerizer then "r"
+else "?";
+
+show_board :: Directory -> Position -> String;
+show_board dir pos = let {intrange :: [Integer];
+intrange = enumFromTo 0 $ pred $ unBoardsize board_size;
+} in unlines $ do { rank <- reverse $ intrange;
+return $ unwords $ do {
+file <- intrange;
+return $ case at_location pos $ Location (rank, file) of {
+Nothing -> "-";
+Just num -> display_piece $ dir ! num;
+}}
+};
+
+show_entry :: Directory -> Entry -> String;
+show_entry dir ((p,color),val) = show_board dir p ++ show color ++ " " ++ show val;
 
 } --end

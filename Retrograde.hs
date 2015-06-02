@@ -3,7 +3,8 @@ module Retrograde where {
 import Data.List;
 import Control.Monad(liftM);
 import Data.Maybe;
-
+import System.Random;
+import Control.Monad.GenericReplicate;
 mapReduce :: forall a b c k. Ord k => (a -> [b]) -> (b -> k) -> (k -> [(a,b)] -> [c]) -> [a] -> [c];
 mapReduce mapfn keyfn redfn l = concatMap (uncurry redfn) $ group2nd keyfn $ do {
  x :: a <- l;
@@ -85,5 +86,11 @@ has_win Biggerizer v = v>Value 0;
 has_win Smallerizer v = v<Value 0;
 
 data Epoch = Known | Unknown deriving (Show);
+
+random_entry :: [a] -> IO a;
+random_entry l = do {
+xs :: [Float] <- genericReplicateM ((genericLength l)::Integer) randomIO;
+return $ snd $ head $ sortOn fst $ zip xs l;
+};
 
 } --end
