@@ -5,6 +5,11 @@ import Control.Monad;
 import Data.Maybe;
 import Data.Array.IArray;
 import Debug.Trace;
+import Retrograde;
+import Data.Map(Map);
+import qualified Data.Map as Map;
+-- import Control.Monad.GenericReplicate;
+import Control.Exception(assert);
 
 -- to avoid the redundancy warning
 trace_placeholder :: ();
@@ -21,8 +26,6 @@ data Alfil = NoAlfil | Alfil deriving (Show);
 data Dabbaba = NoDabbaba | Dabbaba_single | Dabbaba_rider deriving (Show);
 data Royal = Commoner | Royal deriving (Show);
 
--- | Maximizing or Minimizing the Value of a position
-data Color = Biggerizer | Smallerizer deriving (Show, Eq);
 
 data Piece = Piece Royal Orthogonal Diagonal Knight Alfil Dabbaba Color deriving (Show);
 
@@ -38,19 +41,14 @@ rook = Piece Commoner Rook NoDiagonal NoKnight NoAlfil NoDabbaba;
 knight :: Color -> Piece;
 knight = Piece Commoner NoOrthogonal NoDiagonal Knight NoAlfil NoDabbaba;
 
-maxpieces :: Piecenum;
-maxpieces = Piecenum 4;
+test_piece_bounds :: (Piecenum, Piecenum);
+test_piece_bounds = (Piecenum 0, Piecenum 3);
 
-piece_bounds :: (Piecenum, Piecenum);
-piece_bounds = (Piecenum 0, Piecenum $ case maxpieces of {
-Piecenum n -> pred n;
-});
-
-test :: Position;
-test = listArray piece_bounds [Just $ Location (0,0), Just $ Location (7,7), Nothing, Nothing];
+test_position :: Position;
+test_position = listArray test_piece_bounds [Nothing, Just $ snd board_bounds, Nothing, Nothing];
 
 test_directory :: Directory;
-test_directory = listArray piece_bounds [king Biggerizer, king Smallerizer, queen Biggerizer, rook Smallerizer];
+test_directory = listArray test_piece_bounds [king Biggerizer, king Smallerizer, queen Biggerizer, rook Smallerizer];
 
 type Offset = (Integer,Integer);
 
@@ -86,7 +84,7 @@ unBoardsize :: Boardsize -> Integer;
 unBoardsize (Boardsize x) =x;
 
 board_size :: Boardsize;
-board_size = Boardsize 8;
+board_size = Boardsize 4;
 
 moves :: Directory -> Position -> Piecenum -> [Location];
 moves directory position num = case position ! num of {
@@ -179,9 +177,6 @@ type MovePosition = (Position, Color);
 -- stalemate detection
 -- retrograde positions, including uncaptures
 
-other_color :: Color -> Color;
-other_color Biggerizer = Smallerizer;
-other_color Smallerizer = Biggerizer;
 
 has_king :: Directory -> MovePosition -> Bool;
 {-
@@ -193,10 +188,7 @@ has_king dir (position,color) = any (\(ml, p) -> isJust ml && is_royal p && get_
 $ zip (elems position) (elems dir);
 
 retrograde_positions :: Directory -> MovePosition -> [MovePosition];
-retrograde_positions dir (pos, color) = let
-{ othercolor = other_color color
-; poss :: [Position]
-; poss = do {
+retrograde_positions dir (pos, color) = do {
  (i :: Piecenum , p :: Piece) <- assocs dir;
  guard $ color == get_color p;
  new_loc <- moves dir pos i;
@@ -205,17 +197,42 @@ retrograde_positions dir (pos, color) = let
  let { pos2 = pos // [(i,Just new_loc)]; };
  uncapture :: [(Piecenum, Maybe Location)] <- [] : do {
   (i2, ml) <- assocs pos2;
-  guard $ (get_color $ dir ! i2) == othercolor;
+  guard $ (get_color $ dir ! i2) == other color;
   guard $ isNothing ml;
   return [(i2, pos ! i)]; -- ^old position
  };
- return $ pos2 // uncapture;
-};
-} in do {
-  p1 <- poss;
-  guard $ has_king dir (p1,othercolor);
-  return (p1,othercolor);
+ let { pos3 = pos2 // uncapture; };
+ guard $ has_king dir (pos3, other color);
+ -- ^ optimization: other color has a king, possibly uncaptured
+ return (pos3, other color);
 };
 
+overlapping :: Eq a => [a] -> Bool;
+overlapping l = length l /= (length $ nub l);
+
+-- entries in which the value is known without analysis
+final_entries :: Directory -> [(MovePosition,Value)];
+final_entries dir = do {
+ l :: [Maybe Location] <- mapM (\_ -> Nothing:(map Just $ range board_bounds)) $ elems dir;
+ guard $ not $ overlapping $ catMaybes l;
+ color <- [Biggerizer, Smallerizer];
+ let { mp :: MovePosition ; mp = (listArray (bounds dir) l, color);};
+ guard $ not $ has_king dir mp;
+ return (mp, loss color);
+};
+
+value_via_successors :: Directory -> MovePosition -> [(MovePosition,Value)] -> Maybe Value;
+value_via_successors dir mp@(_,color) succs = let {
+ table :: Map [Maybe Location] Value;
+ table = Map.fromList $ map (\((p, c2),v) -> assert (c2 == other color) (elems p,v)) succs;
+} in combine_values color $ map ((flip Map.lookup) table) $ map (\(p,c2) -> assert (c2 == other color) $ elems p) $ successors dir mp ;
+
+successors :: Directory -> MovePosition -> [MovePosition];
+successors dir (pos,color) = do {
+ (i :: Piecenum, p :: Piece) <- assocs dir;
+ guard $ color == get_color p;
+ new_loc <- moves dir pos i;
+ return (pos // [(i,Just new_loc)], other color);
+};
 
 } --end
