@@ -190,14 +190,14 @@ $ zip (elems position) (elems dir);
 retrograde_positions :: Directory -> MovePosition -> [MovePosition];
 retrograde_positions dir (pos, color) = do {
  (i :: Piecenum , p :: Piece) <- assocs dir;
- guard $ color == get_color p;
+ guard $ other color == get_color p;
  new_loc <- moves dir pos i;
  -- | No captures for retrograde analysis.  (Though later, uncaptures.)
  guard $ isNothing $ at_location pos new_loc;
  let { pos2 = pos // [(i,Just new_loc)]; };
  uncapture :: [(Piecenum, Maybe Location)] <- [] : do {
   (i2, ml) <- assocs pos2;
-  guard $ (get_color $ dir ! i2) == other color;
+  guard $ (get_color $ dir ! i2) == color;
   guard $ isNothing ml;
   return [(i2, pos ! i)]; -- ^old position
  };
@@ -210,15 +210,20 @@ retrograde_positions dir (pos, color) = do {
 overlapping :: Eq a => [a] -> Bool;
 overlapping l = length l /= (length $ nub l);
 
--- entries in which the value is known without analysis
-final_entries :: Directory -> [(MovePosition,Value)];
-final_entries dir = do {
+all_positions :: Directory -> [MovePosition];
+all_positions dir = do {
  l :: [Maybe Location] <- mapM (\_ -> Nothing:(map Just $ range board_bounds)) $ elems dir;
  guard $ not $ overlapping $ catMaybes l;
  color <- [Biggerizer, Smallerizer];
- let { mp :: MovePosition ; mp = (listArray (bounds dir) l, color);};
+ return (listArray (bounds dir) l, color);
+};
+
+-- entries in which the value is known without analysis
+final_entries :: Directory -> [(MovePosition,Value)];
+final_entries dir = do {
+ mp <- all_positions dir;
  guard $ not $ has_king dir mp;
- return (mp, loss color);
+ return (mp, loss $ snd mp);
 };
 
 value_via_successors :: Directory -> MovePosition -> [(MovePosition,Value)] -> Maybe Value;
@@ -228,13 +233,37 @@ value_via_successors dir mp@(_,color) succs = let {
 } in combine_values color $ map ((flip Map.lookup) table) $ map (\(p,c2) -> assert (c2 == other color) $ elems p) $ successors dir mp ;
 
 successors :: Directory -> MovePosition -> [MovePosition];
-successors dir (pos,color) = do {
+successors dir mp@(pos,color) = do {
+ guard $ has_king dir mp;
  (i :: Piecenum, p :: Piece) <- assocs dir;
  guard $ color == get_color p;
  new_loc <- moves dir pos i;
- return (pos // [(i,Just new_loc)], other color);
+ return (pos // ((i,Just new_loc):case at_location pos new_loc of {
+Nothing -> [];
+Just captured -> assert (captured /= i) [(captured, Nothing)]})
+, other color);
 };
 
-trymr dir = mapReduce (retrograde_positions dir . fst) (value_via_successors dir) (final_entries dir);
+redfn :: Directory -> MovePosition -> [(MovePosition,Value)] -> [(MovePosition,Value)];
+redfn dir mp succs = case value_via_successors dir mp succs of {
+Nothing -> [];
+Just v -> [(mp,v)];
+};
+
+test_mr :: Directory -> [(MovePosition, Value)];
+test_mr dir = mapReduce (retrograde_positions dir . fst) (redfn dir) (final_entries dir);
+
+test_retro1 :: Directory -> MovePosition -> [(MovePosition, Bool)];
+test_retro1 dir pos = do {
+p1 <- retrograde_positions dir pos;
+return (p1, elem pos $ successors dir p1);
+};
+
+simple_pos :: MovePosition -> (Color, [Maybe Location]);
+simple_pos (p,color) = (color, elems p);
+
+test_retro2 :: Directory -> MovePosition -> Bool;
+test_retro2 dir = and . map snd . test_retro1 dir;
+
 
 } --end

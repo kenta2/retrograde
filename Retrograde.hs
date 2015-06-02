@@ -5,8 +5,8 @@ import Control.Monad(liftM);
 import Data.Maybe;
 import qualified Data.Tuple as Tuple;
 
-mapReduce :: forall a b c. Ord b => (a -> [b]) -> (b -> [a] -> c) -> [a] -> [c];
-mapReduce mapfn redfn l = map (uncurry redfn) $ group2nd $ do {
+mapReduce :: forall a b c. Ord b => (a -> [b]) -> (b -> [a] -> [c]) -> [a] -> [c];
+mapReduce mapfn redfn l = concatMap (uncurry redfn) $ group2nd $ do {
  x :: a <- l;
  y :: b <- mapfn x;
  return (x,y);
