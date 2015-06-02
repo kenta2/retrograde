@@ -14,7 +14,7 @@ import Data.Set(Set);
 import Control.Exception(assert);
 
 board_size :: Boardsize;
-board_size = Boardsize 5;
+board_size = Boardsize 3;
 
 -- to avoid the redundancy warning
 trace_placeholder :: ();
@@ -245,10 +245,10 @@ Just captured -> assert (captured /= i) [(captured, Nothing)]})
 , other color);
 };
 
-redfn :: Directory -> MovePosition -> [(Epoch,(MovePosition,Value))] -> [(MovePosition,Value)];
-redfn dir mp esuccs = if any (\case {(Known,_) -> True;_->False}) esuccs
+redfn :: Directory -> MovePosition -> [((MovePosition,Value),(a,Epoch))] -> [(MovePosition,Value)];
+redfn dir mp esuccs = if any (\case {(_,(_,Known)) -> True;_->False}) esuccs
 then [] -- skip already known values
-else case value_via_successors dir mp (map snd esuccs) of {
+else case value_via_successors dir mp (map fst esuccs) of {
 Nothing -> [];
 Just v -> [(mp,v)];
 };
@@ -257,7 +257,7 @@ mapfn :: Directory -> (MovePosition, Value) -> [(MovePosition, Epoch)];
 mapfn dir (pos,_val) = (pos,Known):(map (\x -> (x, Unknown)) $ retrograde_positions dir pos);
 
 do_mapreduce :: Directory -> [Entry] -> [Entry];
-do_mapreduce dir = mapReduce (mapfn dir) (redfn dir);
+do_mapreduce dir = mapReduce (mapfn dir) fst (redfn dir);
 
 test_retro1 :: Directory -> MovePosition -> [(MovePosition, Bool)];
 test_retro1 dir pos = do {

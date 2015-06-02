@@ -4,27 +4,23 @@ import Data.List;
 import Control.Monad(liftM);
 import Data.Maybe;
 
-mapReduce :: forall a b c v. Ord b => (a -> [(b,v)]) -> (b -> [(v,a)] -> [c]) -> [a] -> [c];
-mapReduce mapfn redfn l = concatMap (uncurry redfn) $ group2nd $ do {
+mapReduce :: forall a b c k. Ord k => (a -> [b]) -> (b -> k) -> (k -> [(a,b)] -> [c]) -> [a] -> [c];
+mapReduce mapfn keyfn redfn l = concatMap (uncurry redfn) $ group2nd keyfn $ do {
  x :: a <- l;
- y :: (b,v) <- mapfn x;
+ y :: b <- mapfn x;
  return (x,y);
 };
 
-group2nd :: forall a b v. (Ord b) => [(a,(b,v))] -> [(b,[(v,a)])];
-group2nd l = let {
-getb :: (a,(b,v)) -> b;
-getb (_,(b1,_))=b1;
-geta :: (a,(b,v)) -> a;
-geta (a1,_)=a1;
-getv :: (a,(b,v)) -> v;
-getv (_,(_,v1)) = v1;
-l2 :: [(a,(b,v))];
-l2 = sortOn getb l;
-l3 :: [[(a,(b,v))]];
-l3 = groupBy (eq_ing getb) l2;
-rearrange :: [(a,(b,v))] -> (b, [(v,a)]);
-rearrange l4 = (getb $ head l4, zip (map getv l4) (map geta l4));
+group2nd :: forall a b k. (Ord k) => (b -> k) -> [(a,b)] -> [(k,[(a,b)])];
+group2nd keyfn l = let {
+apply_keyfn :: (a,b) -> (k,(a,b));
+apply_keyfn t@(_a1,b1) = (keyfn b1, t);
+l2 :: [(k,(a,b))];
+l2 = map apply_keyfn l;
+l3 :: [[(k,(a,b))]];
+l3 = groupBy (eq_ing fst) $ sortOn fst l2;
+rearrange :: [(k,(a,b))] -> (k,[(a,b)]);
+rearrange l4 = (fst $ head l4, map snd l4);
 } in map rearrange l3;
 
 -- cf cData.Ord.comparing
