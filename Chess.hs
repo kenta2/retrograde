@@ -7,7 +7,7 @@ import Data.Array.IArray;
 
 type Position = Array Piecenum (Maybe Location);
 newtype Location = Location Offset deriving (Eq, Ord, Ix, Show);
-newtype Piecenum = Piecenum Integer deriving (Eq,Ord,Ix);
+newtype Piecenum = Piecenum Integer deriving (Eq,Ord,Ix, Show);
 
 data Orthogonal = NoOrthogonal | Wazir | Rook deriving (Show);
 data Diagonal = NoDiagonal | Ferz | Bishop deriving (Show);
@@ -36,11 +36,16 @@ knight = Piece Commoner NoOrthogonal NoDiagonal Knight NoAlfil NoDabbaba;
 maxpieces :: Piecenum;
 maxpieces = Piecenum 4;
 
+piece_bounds :: (Piecenum, Piecenum);
+piece_bounds = (Piecenum 0, Piecenum $ case maxpieces of {
+Piecenum n -> pred n;
+});
+
 test :: Position;
-test = array (Piecenum 0, Piecenum 1) [(Piecenum 0,Just $ Location (0,0)), (Piecenum 1,Just $ Location (7,7))];
+test = listArray piece_bounds [Just $ Location (0,0), Just $ Location (7,7), Nothing, Nothing];
 
 test_directory :: Directory;
-test_directory = listArray (Piecenum 0, Piecenum 1) [queen Biggerizer, rook Smallerizer];
+test_directory = listArray piece_bounds [king Biggerizer, king Smallerizer, queen Biggerizer, rook Smallerizer];
 
 type Offset = (Integer,Integer);
 
@@ -82,17 +87,17 @@ moves :: Directory -> Position -> Piecenum -> [Location];
 moves directory position num = case position ! num of {
 Nothing -> [];
 Just mylocation -> let {
-andBundle :: (Location -> Position -> [Location]) -> [Location];
-andBundle f = f mylocation position;
-} in nub $ filter (inRange board_bounds) $ case (directory ! num) of {
+ andBundle :: (Location -> Position -> [Location]) -> [Location];
+ andBundle f = f mylocation position;
+} in nub $ filter (inRange board_bounds) $ case directory ! num of {
 Piece _roy orth diag jknight jalfil jda color -> filter (not . stomp directory position color)
 $ concatMap andBundle
 [orthmoves orth
 ,diagmoves diag
 ,knightmoves jknight
 ,alfilmoves jalfil
-,dabbabamoves jda]
-}};
+,dabbabamoves jda
+]}};
 
 orthmoves :: Orthogonal -> Location -> Position -> [Location];
 orthmoves NoOrthogonal _ _ = [];
@@ -122,7 +127,7 @@ board_bounds = (Location (0,0),Location (pred $ unBoardsize board_size, pred $ u
 
 empty :: Position -> Location -> Bool;
 empty p l = inRange board_bounds l
-&& (isNothing $ atPosition p l);
+&& (isNothing $ at_location p l);
 
 type Directory = Array Piecenum Piece;
 
@@ -140,24 +145,72 @@ extendUntilOccupied me pos off = take_including_first_failure (empty pos) $ map 
 
 -- trying to capture one's own piece
 stomp :: Directory -> Position -> Color -> Location -> Bool;
-stomp directory p mycolor mylocation = case atPosition p mylocation of {
+stomp directory p mycolor mylocation = case at_location p mylocation of {
 Nothing -> False;
-Just num -> case directory ! num of {
-Piece _ _ _ _ _ _ othercol -> mycolor == othercol
-}};
+Just num -> mycolor == get_color (directory ! num);
+};
 
-atPosition :: Position -> Location -> Maybe Piecenum;
-atPosition pos loc = let {
-check1 :: (Piecenum, Maybe Location) -> [Piecenum];
-check1 (_,Nothing) = mzero;
-check1 (num, Just loc2) = if loc==loc2 then return num else mzero;
+get_color :: Piece -> Color;
+get_color (Piece _ _ _ _ _ _ c) = c;
+
+is_royal :: Piece -> Bool;
+is_royal (Piece Royal _ _ _ _ _ _) = True;
+is_royal _ = False;
+
+at_location :: Position -> Location -> Maybe Piecenum;
+at_location pos loc = let {
+ check1 :: (Piecenum, Maybe Location) -> [Piecenum];
+ check1 (_,Nothing) = mzero;
+ check1 (num, Just loc2) = if loc==loc2 then return num else mzero;
 } in case concatMap check1 $ assocs pos of {
 [] -> Nothing;
 [x] -> Just x;
 _ -> error "multiple occupancy"
 };
 
+-- | position and player to move
+type MovePosition = (Position, Color);
 
+-- stalemate detection
+-- retrograde positions, including uncaptures
+
+other_color :: Color -> Color;
+other_color Biggerizer = Smallerizer;
+other_color Smallerizer = Biggerizer;
+
+has_king :: Directory -> MovePosition -> Bool;
+{-
+has_king Biggerizer pos = isJust $ pos ! Piecenum 0;
+has_king Smallerizer pos = isJust $ pos ! Piecenum 1;
+-}
+-- generalize to any number of royal pieces
+has_king dir (position,color) = any (\(ml, p) -> isJust ml && is_royal p && get_color p == color)
+$ zip (elems position) (elems dir);
+
+retrograde_positions :: Directory -> MovePosition -> [MovePosition];
+retrograde_positions dir (pos, color) = let
+{ othercolor = other_color color
+; poss :: [Position]
+; poss = do {
+ (i :: Piecenum , p :: Piece) <- assocs dir;
+ guard $ color == get_color p;
+ new_loc <- moves dir pos i;
+ -- | No captures for retrograde analysis.  (Though later, uncaptures.)
+ guard $ isNothing $ at_location pos new_loc;
+ let { pos2 = pos // [(i,Just new_loc)]; };
+ uncapture :: [(Piecenum, Maybe Location)] <- [] : do {
+  (i2, ml) <- assocs pos2;
+  guard $ color == othercolor;
+  guard $ isNothing ml;
+  return [(i2, pos ! i)]; -- ^old position
+ };
+ return $ pos2 // uncapture;
+};
+} in do {
+  p1 <- poss;
+  guard $ has_king dir (p1,othercolor);
+  return (p1,othercolor);
+};
 
 
 } --end
