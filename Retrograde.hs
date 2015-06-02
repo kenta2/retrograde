@@ -40,7 +40,7 @@ else compare x y;
 };
 
 -- | Maximizing or Minimizing the Value of a position
-data Color = Biggerizer | Smallerizer deriving (Show, Eq);
+data Color = Biggerizer | Smallerizer deriving (Show, Eq, Ord);
 other :: Color -> Color;
 other Biggerizer = Smallerizer;
 other Smallerizer = Biggerizer;

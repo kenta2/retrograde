@@ -235,4 +235,6 @@ successors dir (pos,color) = do {
  return (pos // [(i,Just new_loc)], other color);
 };
 
+trymr dir = mapReduce (retrograde_positions dir . fst) (value_via_successors dir) (final_entries dir);
+
 } --end
