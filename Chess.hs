@@ -14,7 +14,7 @@ import Data.Set(Set);
 import Control.Exception(assert);
 
 board_size :: Boardsize;
-board_size = Boardsize 3;
+board_size = Boardsize 5;
 
 -- to avoid the redundancy warning
 trace_placeholder :: ();
