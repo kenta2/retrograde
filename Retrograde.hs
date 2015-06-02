@@ -1,15 +1,9 @@
 {-# LANGUAGE ScopedTypeVariables, LambdaCase #-}
-module Main where {
-import System.Environment(getArgs);
+module Retrograde where {
 import Data.List;
 import Control.Monad();
 import Data.Maybe();
 import qualified Data.Tuple as Tuple;
-
-main :: IO();
-main = getArgs >>= \case{
-_ -> undefined;
-};
 
 mapReduce :: forall a b c. Ord b => (a -> [b]) -> (b -> [a] -> c) -> [a] -> [c];
 mapReduce mapfn redfn l = map (uncurry redfn) $ group2nd $ do {
@@ -51,7 +45,5 @@ EQ -> 0;
 LT -> (negate n) +1;
 GT -> (negate n) -1;
 };
-
-
 
 } --end
