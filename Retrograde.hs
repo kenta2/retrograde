@@ -65,6 +65,9 @@ LT -> n-1;
 GT -> n+1;
 };
 
+negate_value :: Value -> Value;
+negate_value (Value n) = Value $ negate n;
+
 combine_values :: Color -> [Maybe Value] -> Maybe Value;
 combine_values color mv = liftM backward $ let {
 -- ^ There will always be at least one Just because retrograding from known values.
@@ -92,5 +95,9 @@ random_entry l = do {
 xs :: [Float] <- genericReplicateM ((genericLength l)::Integer) randomIO;
 return $ snd $ head $ sortOn fst $ zip xs l;
 };
+
+combine_nonpartizan_values :: [Maybe Value] -> Maybe Value;
+combine_nonpartizan_values mv = if any isNothing mv then Nothing
+else Just $ negate_value $ backward $ minimum $ map fromJust mv;
 
 } --end
