@@ -5,15 +5,15 @@ import Control.Monad(liftM);
 import Data.Maybe;
 import qualified Data.Tuple as Tuple;
 
-mapReduce :: forall a b c. Ord b => (a -> [b]) -> (b -> [a] -> [c]) -> [a] -> [c];
+mapReduce :: forall a b c v. Ord b => (a -> [(b,v)]) -> (b -> [(v,a)] -> [c]) -> [a] -> [c];
 mapReduce mapfn redfn l = concatMap (uncurry redfn) $ group2nd $ do {
  x :: a <- l;
- y :: b <- mapfn x;
+ y :: (b,v) <- mapfn x;
  return (x,y);
 };
 
-group2nd :: (Ord b) => [(a,b)] -> [(b,[a])];
-group2nd = map (\l -> (fst $ head l, map snd l)) . groupBy (eq_ing fst) . sortOn fst . map Tuple.swap;
+group2nd :: (Ord b) => [(a,(b,v))] -> [(b,[(v,a)])];
+group2nd = map (\l -> (fst $ fst $ head l, zip (map (snd . fst) l) $ map snd l)) . groupBy (eq_ing $ fst . fst) . sortOn (fst . fst) . map Tuple.swap;
 
 -- cf cData.Ord.comparing
 eq_ing :: Eq b => (a -> b) -> a -> a -> Bool;
@@ -75,5 +75,7 @@ best Smallerizer = minimum;
 has_win :: Color -> Value -> Bool;
 has_win Biggerizer v = v>Value 0;
 has_win Smallerizer v = v<Value 0;
+
+data Epoch = Known | Unknown deriving (Show);
 
 } --end

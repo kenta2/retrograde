@@ -8,6 +8,8 @@ import Debug.Trace;
 import Retrograde;
 import Data.Map(Map);
 import qualified Data.Map as Map;
+import qualified Data.Set as Set;
+import Data.Set(Set);
 -- import Control.Monad.GenericReplicate;
 import Control.Exception(assert);
 
@@ -84,7 +86,7 @@ unBoardsize :: Boardsize -> Integer;
 unBoardsize (Boardsize x) =x;
 
 board_size :: Boardsize;
-board_size = Boardsize 4;
+board_size = Boardsize 2;
 
 moves :: Directory -> Position -> Piecenum -> [Location];
 moves directory position num = case position ! num of {
@@ -175,8 +177,6 @@ _ -> error "multiple occupancy"
 type MovePosition = (Position, Color);
 
 -- stalemate detection
--- retrograde positions, including uncaptures
-
 
 has_king :: Directory -> MovePosition -> Bool;
 {-
@@ -244,14 +244,19 @@ Just captured -> assert (captured /= i) [(captured, Nothing)]})
 , other color);
 };
 
-redfn :: Directory -> MovePosition -> [(MovePosition,Value)] -> [(MovePosition,Value)];
-redfn dir mp succs = case value_via_successors dir mp succs of {
+redfn :: Directory -> MovePosition -> [(Epoch,(MovePosition,Value))] -> [(MovePosition,Value)];
+redfn dir mp esuccs = if any (\case {(Known,_) -> True;_->False}) esuccs
+then [] -- skip already known values
+else case value_via_successors dir mp (map snd esuccs) of {
 Nothing -> [];
 Just v -> [(mp,v)];
 };
 
+mapfn :: Directory -> (MovePosition, Value) -> [(MovePosition, Epoch)];
+mapfn dir (pos,_val) = (pos,Known):(map (\x -> (x, Unknown)) $ retrograde_positions dir pos);
+
 test_mr :: Directory -> [(MovePosition, Value)];
-test_mr dir = mapReduce (retrograde_positions dir . fst) (redfn dir) (final_entries dir);
+test_mr dir = mapReduce (mapfn dir) (redfn dir) (final_entries dir);
 
 test_retro1 :: Directory -> MovePosition -> [(MovePosition, Bool)];
 test_retro1 dir pos = do {
@@ -265,5 +270,14 @@ simple_pos (p,color) = (color, elems p);
 test_retro2 :: Directory -> MovePosition -> Bool;
 test_retro2 dir = and . map snd . test_retro1 dir;
 
+-- omit answers which are already known
+
+test_compare :: Directory -> Set MovePosition;
+test_compare dir = let {
+ s1 :: Set MovePosition;
+ s1 = Set.fromList $ map fst $ final_entries dir;
+ s2 :: Set MovePosition;
+ s2 = Set.fromList $ map fst $ test_mr dir;
+} in Set.intersection s1 s2;
 
 } --end
