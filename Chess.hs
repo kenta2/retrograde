@@ -13,6 +13,9 @@ import Data.Set(Set);
 -- import Control.Monad.GenericReplicate;
 import Control.Exception(assert);
 
+board_size :: Boardsize;
+board_size = Boardsize 5;
+
 -- to avoid the redundancy warning
 trace_placeholder :: ();
 trace_placeholder = trace "trace" ();
@@ -85,8 +88,6 @@ newtype Boardsize = Boardsize Integer deriving (Show);
 unBoardsize :: Boardsize -> Integer;
 unBoardsize (Boardsize x) =x;
 
-board_size :: Boardsize;
-board_size = Boardsize 2;
 
 moves :: Directory -> Position -> Piecenum -> [Location];
 moves directory position num = case position ! num of {
@@ -255,8 +256,8 @@ Just v -> [(mp,v)];
 mapfn :: Directory -> (MovePosition, Value) -> [(MovePosition, Epoch)];
 mapfn dir (pos,_val) = (pos,Known):(map (\x -> (x, Unknown)) $ retrograde_positions dir pos);
 
-test_mr :: Directory -> [(MovePosition, Value)];
-test_mr dir = mapReduce (mapfn dir) (redfn dir) (final_entries dir);
+do_mapreduce :: Directory -> [Entry] -> [Entry];
+do_mapreduce dir = mapReduce (mapfn dir) (redfn dir);
 
 test_retro1 :: Directory -> MovePosition -> [(MovePosition, Bool)];
 test_retro1 dir pos = do {
@@ -272,12 +273,30 @@ test_retro2 dir = and . map snd . test_retro1 dir;
 
 -- omit answers which are already known
 
-test_compare :: Directory -> Set MovePosition;
-test_compare dir = let {
+test_compare :: Directory -> [Entry] -> Set MovePosition;
+test_compare dir seed = let {
  s1 :: Set MovePosition;
- s1 = Set.fromList $ map fst $ final_entries dir;
+ s1 = Set.fromList $ map fst $ seed;
  s2 :: Set MovePosition;
- s2 = Set.fromList $ map fst $ test_mr dir;
+ s2 = Set.fromList $ map fst $ do_mapreduce dir seed;
 } in Set.intersection s1 s2;
+
+type Entry = (MovePosition, Value);
+
+gen_0 :: [Entry];
+gen_0 = final_entries test_directory;
+gen_1 :: [Entry];
+gen_1 = do_mapreduce test_directory gen_0;
+
+gen_2 :: [Entry];
+gen_2 = do_mapreduce test_directory $ gen_0 ++ gen_1;
+
+gens :: [Entry] -> [Entry];
+gens l = l ++ do_mapreduce test_directory l;
+
+until_fixed :: Eq a => [a] -> [a];
+until_fixed (p:rest) = if (p==head rest)
+then [p] else p:until_fixed rest;
+until_fixed _ = error "too short list";
 
 } --end
