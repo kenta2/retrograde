@@ -37,13 +37,10 @@ retrograde_positions :: Position -> [Position];
 retrograde_positions p = assert (is_canonical p) $ canonicalize $ new_pile p ++ add_to_some_pile p;
 
 new_pile :: Position -> [Position];
-new_pile l = if Piles (genericLength l) < max_piles then
-do {
+new_pile l = if Piles (genericLength l) < max_piles then do {
 new <- enumFromTo (Coins 1) max_coins;
 return $ new:l
-}
-else
-[];
+} else [];
 
 is_canonical :: Position -> Bool;
 is_canonical [] = True;
