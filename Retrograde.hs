@@ -6,10 +6,10 @@ import Data.Maybe;
 import System.Random;
 import Control.Monad.GenericReplicate;
 mapReduce :: forall a key value b. Ord key => (a -> [(key,value)]) -> (key -> [(a,value)] -> [b]) -> [a] -> [b];
-mapReduce mapfn redfn l = concatMap (uncurry redfn) $ shuffle $ do {
- x :: a <- l;
+mapReduce mapfn redfn input = concatMap (uncurry redfn) $ shuffle $ do {
+ x :: a <- input;
  y :: (key,value) <- mapfn x;
- return (x,y);
+ return (x,y); -- all pairs
 };
 
 shuffle :: forall a key value. (Ord key) => [(a,(key,value))] -> [(key,[(a,value)])];
@@ -21,7 +21,7 @@ get_key (_,(k,_))=k;
 get_value :: (a,(key,value)) -> value;
 get_value (_,(_,v))=v;
 rearrange :: [(a,(key,value))] -> (key,[(a,value)]);
-rearrange l4 = (get_key $ head l4, zip (map get_a l4) (map get_value l4));
+rearrange l = (get_key $ head l, zip (map get_a l) (map get_value l));
 } in map rearrange . groupBy (eq_ing get_key) . sortOn get_key;
 
 -- cf Data.Ord.comparing
