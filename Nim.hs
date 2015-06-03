@@ -14,10 +14,10 @@ trace_placeholder :: ();
 trace_placeholder = trace "trace" $ assert False ();
 
 max_piles :: Piles;
-max_piles = Piles 6;
+max_piles = Piles 8;
 
 max_coins :: Coins;
-max_coins = Coins 6;
+max_coins = Coins 7;
 
 newtype Piles = Piles Integer deriving (Show, Ord, Eq);
 newtype Coins = Coins Integer deriving (Show, Ord, Eq, Enum);
