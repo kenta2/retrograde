@@ -79,8 +79,8 @@ type Entry = (Position, Value);
 mapfn :: Entry -> [(Position, Epoch)];
 mapfn (pos, _val) = (pos,Known):(map (\x -> (x, Unknown)) $ retrograde_positions pos);
 
-redfn :: Position -> [(Entry, (a,Epoch))] -> [Entry];
-redfn pos esuccs = if any (\case {(_,(_,Known)) -> True; _->False}) esuccs
+redfn :: Position -> [(Entry, Epoch)] -> [Entry];
+redfn pos esuccs = if any (\case {(_,Known) -> True; _->False}) esuccs
 then []
 else case value_via_successors pos (map fst esuccs) of {
 Nothing -> [];
@@ -88,7 +88,7 @@ Just v -> [(pos,v)];
 };
 
 do_mapreduce :: [Entry] -> [Entry];
-do_mapreduce = mapReduce mapfn fst redfn;
+do_mapreduce = mapReduce mapfn redfn;
 
 iterate_mapreduce :: [Entry] -> [[Entry]];
 iterate_mapreduce start = let {

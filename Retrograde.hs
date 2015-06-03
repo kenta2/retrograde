@@ -5,26 +5,26 @@ import Control.Monad(liftM);
 import Data.Maybe;
 import System.Random;
 import Control.Monad.GenericReplicate;
-mapReduce :: forall a b c k. Ord k => (a -> [b]) -> (b -> k) -> (k -> [(a,b)] -> [c]) -> [a] -> [c];
-mapReduce mapfn keyfn redfn l = concatMap (uncurry redfn) $ group2nd keyfn $ do {
+mapReduce :: forall a key value b. Ord key => (a -> [(key,value)]) -> (key -> [(a,value)] -> [b]) -> [a] -> [b];
+mapReduce mapfn redfn l = concatMap (uncurry redfn) $ shuffle $ do {
  x :: a <- l;
- y :: b <- mapfn x;
+ y :: (key,value) <- mapfn x;
  return (x,y);
 };
 
-group2nd :: forall a b k. (Ord k) => (b -> k) -> [(a,b)] -> [(k,[(a,b)])];
-group2nd keyfn l = let {
-apply_keyfn :: (a,b) -> (k,(a,b));
-apply_keyfn t@(_a1,b1) = (keyfn b1, t);
-l2 :: [(k,(a,b))];
-l2 = map apply_keyfn l;
-l3 :: [[(k,(a,b))]];
-l3 = groupBy (eq_ing fst) $ sortOn fst l2;
-rearrange :: [(k,(a,b))] -> (k,[(a,b)]);
-rearrange l4 = (fst $ head l4, map snd l4);
-} in map rearrange l3;
+shuffle :: forall a key value. (Ord key) => [(a,(key,value))] -> [(key,[(a,value)])];
+shuffle = let {
+get_a :: (a,(key,value)) -> a;
+get_a (a1,_)=a1;
+get_key :: (a,(key,value)) -> key;
+get_key (_,(k,_))=k;
+get_value :: (a,(key,value)) -> value;
+get_value (_,(_,v))=v;
+rearrange :: [(a,(key,value))] -> (key,[(a,value)]);
+rearrange l4 = (get_key $ head l4, zip (map get_a l4) (map get_value l4));
+} in map rearrange . groupBy (eq_ing get_key) . sortOn get_key;
 
--- cf cData.Ord.comparing
+-- cf Data.Ord.comparing
 eq_ing :: Eq b => (a -> b) -> a -> a -> Bool;
 eq_ing f x y = (f x) == (f y);
 
