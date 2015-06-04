@@ -54,9 +54,8 @@ other :: Color -> Color;
 other Biggerizer = Smallerizer;
 other Smallerizer = Biggerizer;
 
-loss :: Color -> Value;
-loss Biggerizer = Value $ negate 1;
-loss Smallerizer = Value 1;
+loss :: Value;
+loss = Value $ negate 1;
 
 backward :: Value -> Value;
 backward (Value n) = Value $ case compare n 0 of {

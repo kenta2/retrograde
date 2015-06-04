@@ -14,7 +14,7 @@ import Data.Set(Set);
 import Control.Exception(assert);
 
 board_size :: Boardsize;
-board_size = Boardsize 5;
+board_size = Boardsize 3;
 
 -- to avoid the redundancy warning
 trace_placeholder :: ();
@@ -53,6 +53,9 @@ test_position = listArray test_piece_bounds [Nothing, Just $ snd board_bounds, N
 
 test_directory :: Directory;
 test_directory = listArray test_piece_bounds [king Biggerizer, king Smallerizer, queen Biggerizer, rook Smallerizer];
+
+qr :: Directory;
+qr = test_directory;
 
 type Offset = (Integer,Integer);
 
@@ -223,14 +226,14 @@ final_entries :: Directory -> [(MovePosition,Value)];
 final_entries dir = do {
  mp <- all_positions dir;
  guard $ not $ has_king dir mp;
- return (mp, loss $ snd mp);
+ return (mp, loss);
 };
 
 value_via_successors :: Directory -> MovePosition -> [(MovePosition,Value)] -> Maybe Value;
 value_via_successors dir mp@(_,color) succs = let {
  table :: Map [Maybe Location] Value;
  table = Map.fromList $ map (\((p, c2),v) -> assert (c2 == other color) (elems p,v)) succs;
-} in combine_values color $ map ((flip Map.lookup) table) $ map (\(p,c2) -> assert (c2 == other color) $ elems p) $ successors dir mp ;
+} in combine_nonpartizan_values $ map ((flip Map.lookup) table) $ map (\(p,c2) -> assert (c2 == other color) $ elems p) $ successors dir mp ;
 
 successors :: Directory -> MovePosition -> [MovePosition];
 successors dir mp@(pos,color) = do {
