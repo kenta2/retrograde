@@ -58,7 +58,7 @@ loss :: Value;
 loss = Value $ negate 1;
 
 backward :: Value -> Value;
-backward (Value n) = Value $ case compare n 0 of {
+backward (Value n) = negate_value $ Value $ case compare n 0 of {
 EQ -> 0;
 LT -> n-1;
 GT -> n+1;
@@ -67,11 +67,12 @@ GT -> n+1;
 negate_value :: Value -> Value;
 negate_value (Value n) = Value $ negate n;
 
-combine_values :: Color -> [Maybe Value] -> Maybe Value;
-combine_values color mv = liftM backward $ let {
+combine_values :: [Maybe Value] -> Maybe Value;
+combine_values mv = liftM backward $ let {
 -- ^ There will always be at least one Just because retrograding from known values.
-the_best = best color $ catMaybes mv;
-} in if has_win color the_best
+ the_best :: Value;
+ the_best = minimum $ catMaybes mv;
+} in if the_best < Value 0
 then return the_best
 else if any isNothing mv then Nothing  -- unknown is better than losing
 else return the_best;
@@ -97,6 +98,6 @@ return $ snd $ head $ sortOn fst $ zip xs l;
 
 combine_nonpartizan_values :: [Maybe Value] -> Maybe Value;
 combine_nonpartizan_values mv = if any isNothing mv then Nothing
-else Just $ negate_value $ backward $ minimum $ map fromJust mv;
+else Just $ backward $ minimum $ map fromJust mv;
 
 } --end

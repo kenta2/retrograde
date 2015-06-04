@@ -233,7 +233,7 @@ value_via_successors :: Directory -> MovePosition -> [(MovePosition,Value)] -> M
 value_via_successors dir mp@(_,color) succs = let {
  table :: Map [Maybe Location] Value;
  table = Map.fromList $ map (\((p, c2),v) -> assert (c2 == other color) (elems p,v)) succs;
-} in combine_nonpartizan_values $ map ((flip Map.lookup) table) $ map (\(p,c2) -> assert (c2 == other color) $ elems p) $ successors dir mp ;
+} in combine_values $ map ((flip Map.lookup) table) $ map (\(p,c2) -> assert (c2 == other color) $ elems p) $ successors dir mp ;
 
 successors :: Directory -> MovePosition -> [MovePosition];
 successors dir mp@(pos,color) = do {
