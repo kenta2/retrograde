@@ -48,14 +48,11 @@ then compare y x
 else compare x y;
 };
 
--- | Maximizing or Minimizing the Value of a position
-data Color = Biggerizer | Smallerizer deriving (Show, Eq, Ord);
-other :: Color -> Color;
-other Biggerizer = Smallerizer;
-other Smallerizer = Biggerizer;
-
 loss :: Value;
 loss = Value $ negate 1;
+
+draw :: Value;
+draw = Value 0;
 
 backward :: Value -> Value;
 backward (Value n) = negate_value $ Value $ case compare n 0 of {
@@ -67,26 +64,17 @@ GT -> n+1;
 negate_value :: Value -> Value;
 negate_value (Value n) = Value $ negate n;
 
-combine_values :: [Maybe Value] -> Maybe Value;
-combine_values mv = liftM backward $ let {
+combine_values_greedy :: [Maybe Value] -> Maybe Value;
+combine_values_greedy mv = liftM backward $ let {
 -- ^ There will always be at least one Just because retrograding from known values.
  the_best :: Value;
  the_best = minimum $ catMaybes mv;
 } in if the_best < Value 0
 then return the_best
+-- ^We can greedily take the best value in the event of a win because
+-- the best (fastest) wins come out of the algorithm first.
 else if any isNothing mv then Nothing  -- unknown is better than losing
 else return the_best;
-
--- We can greedily take the best value in the event of a win because
--- the best (fastest) wins come out of the algorithm first.
-
-best :: Color -> [Value] -> Value;
-best Biggerizer = maximum;
-best Smallerizer = minimum;
-
-has_win :: Color -> Value -> Bool;
-has_win Biggerizer v = v>Value 0;
-has_win Smallerizer v = v<Value 0;
 
 data Epoch = Known | Unknown deriving (Show);
 
@@ -95,9 +83,5 @@ random_entry l = do {
 xs :: [Float] <- genericReplicateM ((genericLength l)::Integer) randomIO;
 return $ snd $ head $ sortOn fst $ zip xs l;
 };
-
-combine_nonpartizan_values :: [Maybe Value] -> Maybe Value;
-combine_nonpartizan_values mv = if any isNothing mv then Nothing
-else Just $ backward $ minimum $ map fromJust mv;
 
 } --end

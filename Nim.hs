@@ -31,7 +31,7 @@ uniq :: (Ord a, Eq a) => [a] -> [a];
 uniq = map head . group . sort;
 
 final_entries :: [(Position,Value)];
-final_entries = [([],Value $ negate 1)];
+final_entries = [([],loss)];
 
 retrograde_positions :: Position -> [Position];
 retrograde_positions p = assert (is_canonical p) $ canonicalize $ new_pile p ++ add_to_some_pile p;
@@ -72,7 +72,7 @@ value_via_successors :: Position -> [Entry] -> Maybe Value;
 value_via_successors l succs = let {
  table :: Map Position Value;
  table = Map.fromList succs;
-} in combine_nonpartizan_values $ map ((flip Map.lookup) table) $ successors l;
+} in combine_values_greedy $ map ((flip Map.lookup) table) $ successors l;
 
 type Entry = (Position, Value);
 
@@ -117,13 +117,13 @@ is_zero :: [Bool] -> Bool;
 is_zero = not . any id;
 
 test_item :: Position -> Value -> Bool;
-test_item p v = (is_zero $ nim_sum p) == (v < Value 0);
+test_item p v = (is_zero $ nim_sum p) == (v < draw);
 
 all_answers :: [Entry];
 all_answers = concat $ iterate_mapreduce final_entries;
 
-all_test :: Bool;
-all_test = and $ map (uncurry test_item) all_answers;
+all_test :: (Int,Bool);
+all_test = (length all_answers, and $ map (uncurry test_item) all_answers);
 
 lookup_answer :: Map Position Value;
 lookup_answer = Map.fromList all_answers;
