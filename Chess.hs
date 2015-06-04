@@ -16,6 +16,9 @@ import Control.Exception(assert);
 board_size :: Boardsize;
 board_size = Boardsize 3;
 
+stalemate_draw :: Bool;
+stalemate_draw = True;
+
 -- to avoid the redundancy warning
 trace_placeholder :: ();
 trace_placeholder = trace "trace" ();
@@ -229,7 +232,7 @@ final_entries dir = do {
  mp <- all_positions dir;
  guard $ not $ has_king dir mp;
  return (mp, loss);
-};
+} ++ if stalemate_draw then stalemates dir else [];
 
 value_via_successors :: Directory -> MovePosition -> [(MovePosition,Value)] -> Maybe Value;
 value_via_successors dir mp@(_,color) succs = let {
@@ -320,7 +323,37 @@ Just num -> display_piece $ dir ! num;
 }}
 };
 
+show_mp :: Directory -> MovePosition -> String;
+show_mp dir (p,color) = show_board dir p ++ show color;
+
 show_entry :: Directory -> Entry -> String;
-show_entry dir ((p,color),val) = show_board dir p ++ show color ++ " " ++ show val;
+show_entry dir (mp,val) = show_mp dir mp ++ " " ++ show val;
+
+in_check :: Directory -> MovePosition -> Bool;
+in_check dir mp@(pos,color) = assert (has_king dir mp) $
+ illegal_position dir (pos, other color);
+
+-- | King can be captured
+illegal_position :: Directory -> MovePosition -> Bool;
+illegal_position dir mp@(pos,color) = assert (has_king dir (pos, other color)) $
+ any (not . has_king dir) $ successors dir mp;
+
+no_legal_moves :: Directory -> MovePosition -> Bool;
+no_legal_moves dir = null . filter (not . illegal_position dir) . successors dir;
+
+stalemate :: Directory -> MovePosition -> Bool;
+stalemate dir mp = (not $ in_check dir mp) && no_legal_moves dir mp;
+
+checkmate :: Directory -> MovePosition -> Bool;
+checkmate dir mp = in_check dir mp && no_legal_moves dir mp;
+
+stalemates :: Directory -> [Entry];
+-- stalemates _dir = [];
+stalemates dir = do {
+ mp <- all_positions dir;
+ guard $ has_king dir mp;
+ guard $ stalemate dir mp;
+ return (mp, draw);
+};
 
 } --end
