@@ -14,7 +14,7 @@ import Data.Set(Set);
 import Control.Exception(assert);
 
 board_size :: Boardsize;
-board_size = Boardsize 3;
+board_size = Boardsize 4;
 
 stalemate_draw :: Bool;
 stalemate_draw = True;
