@@ -32,10 +32,10 @@ data Dabbaba = NoDabbaba | Dabbaba_single | Dabbaba_rider deriving (Show,Eq);
 data Royal = Commoner | Royal deriving (Show, Eq);
 
 -- | Maximizing or Minimizing the Value of a position
-data Color = Biggerizer | Smallerizer deriving (Show, Eq, Ord);
+data Color = White | Black deriving (Show, Eq, Ord);
 other :: Color -> Color;
-other Biggerizer = Smallerizer;
-other Smallerizer = Biggerizer;
+other White = Black;
+other Black = White;
 
 data Piece = Piece Royal Orthogonal Diagonal Knight Alfil Dabbaba Color deriving (Show, Eq);
 
@@ -58,7 +58,7 @@ test_position :: Position;
 test_position = listArray test_piece_bounds [Nothing, Just $ snd board_bounds, Nothing, Nothing];
 
 test_directory :: Directory;
-test_directory = listArray test_piece_bounds [king Biggerizer, king Smallerizer, queen Biggerizer, rook Smallerizer];
+test_directory = listArray test_piece_bounds [king White, king Black, queen White, rook Black];
 
 qr :: Directory;
 qr = test_directory;
@@ -188,10 +188,6 @@ type MovePosition = (Position, Color);
 -- stalemate detection
 
 has_king :: Directory -> MovePosition -> Bool;
-{-
-has_king Biggerizer pos = isJust $ pos ! Piecenum 0;
-has_king Smallerizer pos = isJust $ pos ! Piecenum 1;
--}
 -- generalize to any number of royal pieces
 has_king dir (position,color) = any (\(ml, p) -> isJust ml && is_royal p && get_color p == color)
 $ zip (elems position) (elems dir);
@@ -223,7 +219,7 @@ all_positions :: Directory -> [MovePosition];
 all_positions dir = do {
  l :: [Maybe Location] <- mapM (\_ -> Nothing:(map Just $ range board_bounds)) $ elems dir;
  guard $ not $ overlapping $ catMaybes l;
- color <- [Biggerizer, Smallerizer];
+ color <- [White, Black];
  return (listArray (bounds dir) l, color);
 };
 
@@ -306,10 +302,10 @@ more = do_mapreduce test_directory start;
 else more:iterate_mapreduce (start ++ more);
 
 display_piece :: Piece -> String;
-display_piece p = if p == king Biggerizer then "K"
-else if p == king Smallerizer then "k"
-else if p == queen Biggerizer then "Q"
-else if p == rook Smallerizer then "r"
+display_piece p = if p == king White then "K"
+else if p == king Black then "k"
+else if p == queen White then "Q"
+else if p == rook Black then "r"
 else "?";
 
 show_board :: Directory -> Position -> String;
