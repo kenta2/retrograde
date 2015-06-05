@@ -12,6 +12,7 @@ mapReduce mapfn redfn input = concatMap (uncurry redfn) $ shuffle $ do {
  return (x,y); -- all pairs
 };
 
+-- profiling reveals the majority of the computation time is spent here, not too surprising.
 shuffle :: forall a key value. (Ord key) => [(a,(key,value))] -> [(key,[(a,value)])];
 shuffle = let {
 get_a :: (a,(key,value)) -> a;
