@@ -5,11 +5,7 @@ import Control.Monad(liftM);
 import Data.Maybe;
 import System.Random;
 import Control.Monad.GenericReplicate;
-import qualified Data.Sequence as Seq;
--- import Data.Sequence(Seq);
-import Data.Ord;
-import Data.Foldable;
--- import Debug.Trace;
+import Debug.Trace;
 mapReduce :: forall a key value b. Ord key => (a -> [(key,value)]) -> (key -> [(a,value)] -> [b]) -> [a] -> [b];
 mapReduce mapfn redfn input = concatMap (uncurry redfn) $ shuffle $ do {
  x :: a <- input;
@@ -31,8 +27,8 @@ get_value :: (a,(key,value)) -> value;
 get_value (_,(_,v))=v;
 rearrange :: [(a,(key,value))] -> (key,[(a,value)]);
 rearrange l = (get_key $ head l, zip (map get_a l) (map get_value l));
-} in {- trace ("shuffle " ++ (show $length intermediate)) $ -}
-(map rearrange . groupBy (equating get_key) . toList . Seq.unstableSortBy (comparing get_key) . Seq.fromList) intermediate;
+} in trace ("shuffle " ++ (show $length intermediate)) $
+(map rearrange . groupBy (equating get_key) . sortOn get_key) intermediate;
 
 -- cf Data.Ord.comparing
 equating :: Eq b => (a -> b) -> a -> a -> Bool;
