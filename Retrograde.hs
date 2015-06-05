@@ -22,11 +22,11 @@ get_value :: (a,(key,value)) -> value;
 get_value (_,(_,v))=v;
 rearrange :: [(a,(key,value))] -> (key,[(a,value)]);
 rearrange l = (get_key $ head l, zip (map get_a l) (map get_value l));
-} in map rearrange . groupBy (eq_ing get_key) . sortOn get_key;
+} in map rearrange . groupBy (equating get_key) . sortOn get_key;
 
 -- cf Data.Ord.comparing
-eq_ing :: Eq b => (a -> b) -> a -> a -> Bool;
-eq_ing f x y = (f x) == (f y);
+equating :: Eq b => (a -> b) -> a -> a -> Bool;
+equating f x y = (f x) == (f y);
 
 {-
 retrogrades :: Entry -> [Entry];
