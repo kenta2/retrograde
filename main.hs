@@ -16,7 +16,7 @@ main :: IO();
 -- main = do {mapM_ print $ elems test_directory ; mapM_ print $ zip [0::Integer ..]  $map length $ gen_0: iterate_mapreduce gen_0;}
 -- board_size 4 = 23 minutes with stalemate
 
-main = print $ length $ piece_set2 3 [];
+main = print $ length $ piece_set2 4 [];
 -- size 2 = 11664
 -- size 3 = 3790800
 -- size 4 = 629236836 -- 4 minutes
@@ -24,4 +24,8 @@ main = print $ length $ piece_set2 3 [];
 -- 2 = 5886
 -- 3 = 1895400
 -- 4 = 314627193 -- 19 minutes, after assert sorted
+-- omitting Dabbaba_rider
+-- 2 = 2628
+-- 3 = 562464
+-- 4 = 62432010
 }

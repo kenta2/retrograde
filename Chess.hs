@@ -31,7 +31,7 @@ data Orthogonal = NoOrthogonal | Wazir | Rook deriving (Show, Eq, Ord, Bounded, 
 data Diagonal = NoDiagonal | Ferz | Bishop deriving (Show, Eq, Ord, Bounded, Ix);
 data Knight = NoKnight | Knight deriving (Show, Eq, Ord, Bounded, Ix);
 data Alfil = NoAlfil | Alfil deriving (Show, Eq, Ord, Bounded, Ix);
-data Dabbaba = NoDabbaba | Dabbaba_single | Dabbaba_rider deriving (Show,Eq, Ord, Bounded, Ix);
+data Dabbaba = NoDabbaba | Dabbaba_single {- | Dabbaba_rider -} deriving (Show,Eq, Ord, Bounded, Ix);
 data Royal = Commoner | Royal deriving (Show, Eq, Ord, Bounded, Ix);
 
 -- | Maximizing or Minimizing the Value of a position
@@ -156,7 +156,7 @@ alfilmoves Alfil me _ = map (add_offset me) $ eightway (2,2);
 dabbabamoves :: Dabbaba -> Location -> Position -> [Location];
 dabbabamoves NoDabbaba _ _ = [];
 dabbabamoves Dabbaba_single me _ = map (add_offset me) $ eightway (2,0);
-dabbabamoves Dabbaba_rider me pos = concatMap (extendUntilOccupied me pos) $ eightway (2,0);
+-- dabbabamoves Dabbaba_rider me pos = concatMap (extendUntilOccupied me pos) $ eightway (2,0);
 
 board_bounds :: (Location,Location);
 board_bounds = (Location (0,0),Location (pred $ unBoardsize board_size, pred $ unBoardsize board_size));
