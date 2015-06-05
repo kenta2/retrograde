@@ -5,6 +5,11 @@ import Control.Monad(liftM);
 import Data.Maybe;
 import System.Random;
 import Control.Monad.GenericReplicate;
+import qualified Data.Sequence as Seq;
+-- import Data.Sequence(Seq);
+import Data.Ord;
+import Data.Foldable;
+-- import Debug.Trace;
 mapReduce :: forall a key value b. Ord key => (a -> [(key,value)]) -> (key -> [(a,value)] -> [b]) -> [a] -> [b];
 mapReduce mapfn redfn input = concatMap (uncurry redfn) $ shuffle $ do {
  x :: a <- input;
@@ -12,9 +17,12 @@ mapReduce mapfn redfn input = concatMap (uncurry redfn) $ shuffle $ do {
  return (x,y); -- all pairs
 };
 
+-- regular lists 364.75 sec
+-- Seq.unstableSortBy = 440.98 sec
+
 -- profiling reveals the majority of the computation time is spent here, not too surprising.
 shuffle :: forall a key value. (Ord key) => [(a,(key,value))] -> [(key,[(a,value)])];
-shuffle = let {
+shuffle intermediate = let {
 get_a :: (a,(key,value)) -> a;
 get_a (a1,_)=a1;
 get_key :: (a,(key,value)) -> key;
@@ -23,7 +31,8 @@ get_value :: (a,(key,value)) -> value;
 get_value (_,(_,v))=v;
 rearrange :: [(a,(key,value))] -> (key,[(a,value)]);
 rearrange l = (get_key $ head l, zip (map get_a l) (map get_value l));
-} in map rearrange . groupBy (equating get_key) . sortOn get_key;
+} in {- trace ("shuffle " ++ (show $length intermediate)) $ -}
+(map rearrange . groupBy (equating get_key) . toList . Seq.unstableSortBy (comparing get_key) . Seq.fromList) intermediate;
 
 -- cf Data.Ord.comparing
 equating :: Eq b => (a -> b) -> a -> a -> Bool;
