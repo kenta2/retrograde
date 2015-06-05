@@ -10,14 +10,14 @@ import Data.Map(Map);
 import qualified Data.Map as Map;
 import qualified Data.Set as Set;
 import Data.Set(Set);
--- import Control.Monad.GenericReplicate;
+import Control.Monad.GenericReplicate;
 import Control.Exception(assert);
 
 board_size :: Boardsize;
 board_size = Boardsize 4;
 
 stalemate_draw :: Bool;
-stalemate_draw = True;
+stalemate_draw = False;
 
 -- to avoid the redundancy warning
 trace_placeholder :: ();
@@ -27,23 +27,26 @@ type Position = Array Piecenum (Maybe Location);
 newtype Location = Location Offset deriving (Eq, Ord, Ix, Show);
 newtype Piecenum = Piecenum Integer deriving (Eq, Ord, Ix, Show);
 
-data Orthogonal = NoOrthogonal | Wazir | Rook deriving (Show, Eq);
-data Diagonal = NoDiagonal | Ferz | Bishop deriving (Show, Eq);
-data Knight = NoKnight | Knight deriving (Show, Eq);
-data Alfil = NoAlfil | Alfil deriving (Show, Eq);
-data Dabbaba = NoDabbaba | Dabbaba_single | Dabbaba_rider deriving (Show,Eq);
-data Royal = Commoner | Royal deriving (Show, Eq);
+data Orthogonal = NoOrthogonal | Wazir | Rook deriving (Show, Eq, Ord, Bounded, Ix);
+data Diagonal = NoDiagonal | Ferz | Bishop deriving (Show, Eq, Ord, Bounded, Ix);
+data Knight = NoKnight | Knight deriving (Show, Eq, Ord, Bounded, Ix);
+data Alfil = NoAlfil | Alfil deriving (Show, Eq, Ord, Bounded, Ix);
+data Dabbaba = NoDabbaba | Dabbaba_single | Dabbaba_rider deriving (Show,Eq, Ord, Bounded, Ix);
+data Royal = Commoner | Royal deriving (Show, Eq, Ord, Bounded, Ix);
 
 -- | Maximizing or Minimizing the Value of a position
-data Color = White | Black deriving (Show, Eq, Ord);
+data Color = White | Black deriving (Show, Eq, Ord, Bounded, Ix);
 other :: Color -> Color;
 other White = Black;
 other Black = White;
 
-data Piece = Piece Royal Orthogonal Diagonal Knight Alfil Dabbaba Color deriving (Show, Eq);
+data Piece = Piece Royal Orthogonal Diagonal Knight Alfil Dabbaba Color deriving (Show, Eq, Ord, Bounded, Ix);
 
 king :: Color -> Piece;
 king = Piece Royal Wazir Ferz NoKnight NoAlfil NoDabbaba;
+
+man :: Color -> Piece;
+man = Piece Commoner Wazir Ferz NoKnight NoAlfil NoDabbaba;
 
 queen :: Color -> Piece;
 queen = Piece Commoner Rook Bishop NoKnight NoAlfil NoDabbaba;
@@ -54,17 +57,33 @@ rook = Piece Commoner Rook NoDiagonal NoKnight NoAlfil NoDabbaba;
 knight :: Color -> Piece;
 knight = Piece Commoner NoOrthogonal NoDiagonal Knight NoAlfil NoDabbaba;
 
-test_piece_bounds :: (Piecenum, Piecenum);
-test_piece_bounds = (Piecenum 0, Piecenum 3);
+td :: Directory;
+td = test_directory;
 
-test_position :: Position;
-test_position = listArray test_piece_bounds [Nothing, Just $ snd board_bounds, Nothing, Nothing];
-
+-- test directory
 test_directory :: Directory;
-test_directory = listArray test_piece_bounds [king White, king Black, queen White, rook Black];
+test_directory = listArray (Piecenum 0, Piecenum 3) [king White, king Black
+, Piece Commoner NoOrthogonal Ferz NoKnight NoAlfil NoDabbaba White
+, Piece Commoner NoOrthogonal NoDiagonal Knight NoAlfil NoDabbaba White
+];
 
-qr :: Directory;
-qr = test_directory;
+dir_bn :: Directory;
+dir_bn = listArray (Piecenum 0, Piecenum 3) [king White, king Black
+, Piece Commoner NoOrthogonal Bishop NoKnight NoAlfil NoDabbaba White
+, Piece Commoner NoOrthogonal NoDiagonal Knight NoAlfil NoDabbaba White
+];
+
+dir_bb :: Directory;
+dir_bb = listArray (Piecenum 0, Piecenum 3) [king White, king Black
+, Piece Commoner NoOrthogonal Bishop NoKnight NoAlfil NoDabbaba White
+, Piece Commoner NoOrthogonal Bishop NoKnight NoAlfil NoDabbaba White
+];
+
+dir_qr :: Directory;
+dir_qr = listArray (Piecenum 0, Piecenum 3) [king White, king Black, queen White, rook Black];
+
+dir_kmk :: Directory;
+dir_kmk = listArray (Piecenum 0, Piecenum 2) [king White, king Black, man White];
 
 type Offset = (Integer,Integer);
 
@@ -354,6 +373,18 @@ stalemates dir = do {
  guard $ has_king dir mp;
  guard $ stalemate dir mp;
  return (mp, draw);
+};
+
+all_pieces :: [Piece];
+all_pieces = range (minBound, maxBound);
+
+piece_set :: Integer -> [[Piece]];
+piece_set size = do {
+z <- genericReplicateM size all_pieces;
+guard $ any (\p -> is_royal p && (White == get_color p)) z;
+guard $ any (\p -> is_royal p && (Black == get_color p)) z;
+guard (z == sort z);
+return z;
 };
 
 } --end
