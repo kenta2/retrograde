@@ -62,7 +62,10 @@ td = test_directory;
 
 -- test directory
 test_directory :: Directory;
-test_directory = listArray (Piecenum 0, Piecenum 3) [king White, king Black
+test_directory = dir_bb;
+
+dir_experiment :: Directory;
+dir_experiment = listArray (Piecenum 0, Piecenum 3) [king White, king Black
 , Piece Commoner NoOrthogonal Ferz NoKnight NoAlfil NoDabbaba White
 , Piece Commoner NoOrthogonal NoDiagonal Knight NoAlfil NoDabbaba White
 ];
