@@ -387,4 +387,20 @@ guard (z == sort z);
 return z;
 };
 
+piece_set2 :: Integer -> [Piece] -> [[Piece]];
+piece_set2 0 z {-^ accumulating parameter -} = assert (z == sort z) $ if (any (\p -> is_royal p && (White == get_color p)) z)
+&& (any (\p -> is_royal p && (Black == get_color p)) z)
+&& z <= sort (map flip_color z)
+then return z
+else mzero;
+piece_set2 n z = do {
+ h <- all_pieces;
+ guard $ case z of {[] -> True; (x:_)->h<=x};
+ piece_set2 (pred n) (h:z);
+};
+
+flip_color :: Piece -> Piece;
+flip_color (Piece x1 x2 x3 x4 x5 x6 c) = Piece x1 x2 x3 x4 x5 x6 $ other c;
+
+
 } --end
