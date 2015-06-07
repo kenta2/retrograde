@@ -346,20 +346,26 @@ else if p == man White then "M"
 else if p == man Black then "m"
 else "?";
 
-show_board :: Directory -> Position -> String;
-show_board dir pos = let {intrange :: [Integer];
+show_board_p :: Directory -> Position -> String;
+show_board_p dir = show_board_f (display_piece . (dir!));
+
+show_board_numbers :: Position -> String;
+show_board_numbers = show_board_f (\(Piecenum n) -> show n);
+
+show_board_f ::(Piecenum -> String) -> Position -> String;
+show_board_f f pos = let {intrange :: [Integer];
 intrange = enumFromTo 0 $ pred $ unBoardsize board_size;
 } in unlines $ do { rank <- reverse $ intrange;
 return $ unwords $ do {
 file <- intrange;
 return $ case at_location pos $ Location (rank, file) of {
 Nothing -> "-";
-Just num -> display_piece $ dir ! num;
+Just num -> f num;
 }}
 };
 
 show_mp :: Directory -> MovePosition -> String;
-show_mp dir (p,color) = show_board dir p ++ show color;
+show_mp _dir (p,color) = show_board_numbers p ++ show color;
 
 show_entry :: Directory -> Entry -> String;
 show_entry dir (mp,val) = show_mp dir mp ++ " " ++ show val;
@@ -458,9 +464,27 @@ make_dir pcs = listArray (Piecenum 0, Piecenum $ pred $ genericLength pcs) pcs;
 try_three_pieces :: Integer -> IO();
 try_three_pieces n = do {
 let {pcs = genericIndex three_pieces n};
-mapM_ print pcs;
-let {dir = make_dir pcs};
-print $ length $ iterate_mapreduce dir $ final_entries dir;
+mapM_ print $ zip [(0::Integer)..] pcs;
+let {
+ dir :: Directory;
+ dir = make_dir pcs;
+ fin_en :: [Entry];
+ fin_en = final_entries dir;
+ ls :: [[Entry]];
+ ls = fin_en:iterate_mapreduce dir fin_en;
+ amap1 :: Map_v;
+ amap1 = Map.fromList $ concat ls;
+ longest :: Entry;
+ longest = maximumBy (\x y -> winlength (snd x) (snd y)) $ concat ls;
+ len :: Integer;
+ len = genericLength ls;
+};
+putStrLn $"totals " ++ (show $ Map.size amap1);
+putStr "length ";
+print $ len;
+if len>9 then mapM_ (putStrLn . show_entry dir) $ do_trace dir amap1 $ longest
+else return ();
+
 };
 
 rand_three_pieces :: IO();
