@@ -13,6 +13,7 @@ import Data.Set(Set);
 import Control.Monad.GenericReplicate;
 import Control.Exception(assert);
 import Data.Ord;
+import System.Random(randomRIO);
 
 board_size :: Boardsize;
 board_size = Boardsize 4;
@@ -22,7 +23,7 @@ stalemate_draw = True;
 
 -- test directory
 test_directory :: Directory;
-test_directory = dir_bn;
+test_directory = error "test_directory";
 
 -- to avoid the redundancy warning
 trace_placeholder :: ();
@@ -255,7 +256,8 @@ all_positions dir = do {
 -- entries in which the value is known without analysis
 final_entries :: Directory -> [(MovePosition,Value)];
 final_entries dir = do {
- mp <- (\x -> trace ("all_positions " ++ (show $ length x)) x) $ all_positions dir;
+ mp <- -- (\x -> trace ("all_positions " ++ (show $ length x)) x) $
+    all_positions dir;
  guard $ not $ has_king dir mp;
  return (mp, loss);
 } ++ if stalemate_draw then stalemates dir else [];
@@ -324,11 +326,11 @@ gen_1 = do_mapreduce test_directory gen_0;
 gen_2 :: [Entry];
 gen_2 = do_mapreduce test_directory $ gen_0 ++ gen_1;
 
-iterate_mapreduce :: [Entry] -> [[Entry]];
-iterate_mapreduce start = let {
-more = do_mapreduce test_directory start;
+iterate_mapreduce :: Directory -> [Entry] -> [[Entry]];
+iterate_mapreduce dir start = let {
+more = do_mapreduce dir start;
 } in if null more then []
-else more:iterate_mapreduce (start ++ more);
+else more:iterate_mapreduce dir (start ++ more);
 
 display_piece :: Piece -> String;
 display_piece p = if p == king White then "K"
@@ -419,7 +421,7 @@ flip_color (Piece x1 x2 x3 x4 x5 x6 c) = Piece x1 x2 x3 x4 x5 x6 $ other c;
 type Map_v = Map MovePosition Value;
 
 allmap :: Map_v;
-allmap = Map.fromList $ concat $ gen_0:iterate_mapreduce gen_0;
+allmap = Map.fromList $ concat $ gen_0:iterate_mapreduce test_directory gen_0;
 
 do_trace :: Directory -> Map_v -> Entry -> [Entry];
 do_trace dir m p = p:case Map.lookup (fst p) m of {
@@ -439,6 +441,35 @@ show_longest :: IO();
 show_longest = mapM_ (putStrLn . show_entry test_directory)  $ do_trace test_directory allmap longest_win;
 
 eval_iterate :: IO();
-eval_iterate = do {mapM_ print $ elems test_directory ; mapM_ print $ zip [0::Integer ..]  $map length $ gen_0: iterate_mapreduce gen_0;};
+eval_iterate = do {mapM_ print $ elems test_directory ; mapM_ print $ zip [0::Integer ..]  $map length $ gen_0: iterate_mapreduce test_directory gen_0;};
+
+three_pieces :: [[Piece]];
+three_pieces = piece_set2 3 [];
+
+three_pieces_length :: Integer;
+three_pieces_length = 562464;
+
+three_pieces_length_check :: IO();
+three_pieces_length_check = assert (genericLength three_pieces == three_pieces_length) $ return ();
+
+make_dir :: [Piece] -> Directory;
+make_dir pcs = listArray (Piecenum 0, Piecenum $ pred $ genericLength pcs) pcs;
+
+try_three_pieces :: Integer -> IO();
+try_three_pieces n = do {
+let {pcs = genericIndex three_pieces n};
+mapM_ print pcs;
+let {dir = make_dir pcs};
+print $ length $ iterate_mapreduce dir $ final_entries dir;
+};
+
+rand_three_pieces :: IO();
+rand_three_pieces = do {
+n :: Integer <- randomRIO (0,pred three_pieces_length);
+putStr "seed ";
+print n;
+try_three_pieces n;
+rand_three_pieces;
+};
 
 } --end

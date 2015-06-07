@@ -6,6 +6,11 @@ import Data.Maybe;
 import System.Random;
 import Control.Monad.GenericReplicate;
 import Debug.Trace;
+import Control.Exception(assert);
+-- to avoid the redundancy warning
+retrograde_trace_placeholder :: ();
+retrograde_trace_placeholder = trace "trace" $ assert False ();
+
 mapReduce :: forall a key value b. Ord key => (a -> [(key,value)]) -> (key -> [(a,value)] -> [b]) -> [a] -> [b];
 mapReduce mapfn redfn input = concatMap (uncurry redfn) $ shuffle $ do {
  x :: a <- input;
@@ -27,7 +32,7 @@ get_value :: (a,(key,value)) -> value;
 get_value (_,(_,v))=v;
 rearrange :: [(a,(key,value))] -> (key,[(a,value)]);
 rearrange l = (get_key $ head l, zip (map get_a l) (map get_value l));
-} in trace ("shuffle " ++ (show $length intermediate)) $
+} in -- trace ("shuffle " ++ (show $length intermediate)) $
 (map rearrange . groupBy (equating get_key) . sortOn get_key) intermediate;
 
 -- cf Data.Ord.comparing

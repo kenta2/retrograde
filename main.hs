@@ -1,6 +1,13 @@
+{-# LANGUAGE ScopedTypeVariables, LambdaCase #-}
 module Main where {
 import Chess;
+import System.Environment(getArgs);
+import System.IO;
 -- import Retrograde;
+
+silly :: IO [String];
+silly = getArgs;
+
 main :: IO();
 -- main = print $ and $ map (test_retro2 test_directory) $ all_positions test_directory;
 -- boardsize 4 = 22 sec
@@ -28,5 +35,14 @@ main :: IO();
 -- 3 = 562464
 -- 4 = 62432010
 
-main = show_longest;
+-- main = show_longest;
+
+-- main = three_pieces_length_check;
+
+-- main = getArgs >>= try_three_pieces . read . head;
+main = do {
+ hSetBuffering stdout LineBuffering;
+ putStrLn "start";
+ rand_three_pieces;
+};
 }
