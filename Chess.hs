@@ -450,10 +450,12 @@ eval_iterate :: IO();
 eval_iterate = do {mapM_ print $ elems test_directory ; mapM_ print $ zip [0::Integer ..]  $map length $ gen_0: iterate_mapreduce test_directory gen_0;};
 
 three_pieces :: [[Piece]];
-three_pieces = piece_set2 3 [];
+three_pieces = piece_set2 4 [];
 
 three_pieces_length :: Integer;
-three_pieces_length = 562464;
+-- three_pieces_length = genericLength $ three_pieces ();
+--three_pieces_length = 562464;
+three_pieces_length = 62432010;
 
 three_pieces_length_check :: IO();
 three_pieces_length_check = assert (genericLength three_pieces == three_pieces_length) $ return ();

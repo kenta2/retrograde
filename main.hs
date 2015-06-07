@@ -43,6 +43,8 @@ main :: IO();
 main = do {
  hSetBuffering stdout LineBuffering;
  putStrLn "start";
- rand_three_pieces;
+ -- rand_three_pieces;
+ -- print $ length $ three_pieces();
+ getArgs >>= try_three_pieces . read . head;
 };
 }
