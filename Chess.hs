@@ -6,18 +6,23 @@ import Data.Maybe;
 import Data.Array.IArray;
 import Debug.Trace;
 import Retrograde;
-import Data.Map(Map);
-import qualified Data.Map as Map;
+import Data.Map.Strict(Map);
+import qualified Data.Map.Strict as Map;
 import qualified Data.Set as Set;
 import Data.Set(Set);
 import Control.Monad.GenericReplicate;
 import Control.Exception(assert);
+import Data.Ord;
 
 board_size :: Boardsize;
 board_size = Boardsize 4;
 
 stalemate_draw :: Bool;
-stalemate_draw = False;
+stalemate_draw = True;
+
+-- test directory
+test_directory :: Directory;
+test_directory = dir_bn;
 
 -- to avoid the redundancy warning
 trace_placeholder :: ();
@@ -57,12 +62,11 @@ rook = Piece Commoner Rook NoDiagonal NoKnight NoAlfil NoDabbaba;
 knight :: Color -> Piece;
 knight = Piece Commoner NoOrthogonal NoDiagonal Knight NoAlfil NoDabbaba;
 
+bishop :: Color -> Piece;
+bishop = Piece Commoner NoOrthogonal Bishop NoKnight NoAlfil NoDabbaba;
+
 td :: Directory;
 td = test_directory;
-
--- test directory
-test_directory :: Directory;
-test_directory = dir_bb;
 
 dir_experiment :: Directory;
 dir_experiment = listArray (Piecenum 0, Piecenum 3) [king White, king Black
@@ -72,8 +76,8 @@ dir_experiment = listArray (Piecenum 0, Piecenum 3) [king White, king Black
 
 dir_bn :: Directory;
 dir_bn = listArray (Piecenum 0, Piecenum 3) [king White, king Black
-, Piece Commoner NoOrthogonal Bishop NoKnight NoAlfil NoDabbaba White
-, Piece Commoner NoOrthogonal NoDiagonal Knight NoAlfil NoDabbaba White
+, bishop White
+, knight White
 ];
 
 dir_bb :: Directory;
@@ -251,7 +255,7 @@ all_positions dir = do {
 -- entries in which the value is known without analysis
 final_entries :: Directory -> [(MovePosition,Value)];
 final_entries dir = do {
- mp <- all_positions dir;
+ mp <- (\x -> trace ("all_positions " ++ (show $ length x)) x) $ all_positions dir;
  guard $ not $ has_king dir mp;
  return (mp, loss);
 } ++ if stalemate_draw then stalemates dir else [];
@@ -331,6 +335,13 @@ display_piece p = if p == king White then "K"
 else if p == king Black then "k"
 else if p == queen White then "Q"
 else if p == rook Black then "r"
+else if p == rook White then "R"
+else if p == bishop White then "B"
+else if p == knight White then "N"
+else if p == bishop Black then "b"
+else if p == knight Black then "n"
+else if p == man White then "M"
+else if p == man Black then "m"
 else "?";
 
 show_board :: Directory -> Position -> String;
@@ -405,5 +416,29 @@ piece_set2 n z = do {
 flip_color :: Piece -> Piece;
 flip_color (Piece x1 x2 x3 x4 x5 x6 c) = Piece x1 x2 x3 x4 x5 x6 $ other c;
 
+type Map_v = Map MovePosition Value;
+
+allmap :: Map_v;
+allmap = Map.fromList $ concat $ gen_0:iterate_mapreduce gen_0;
+
+do_trace :: Directory -> Map_v -> Entry -> [Entry];
+do_trace dir m p = p:case Map.lookup (fst p) m of {
+Just v | v == loss -> []
+| True -> let {next = minimumBy (comparing (snd::(Entry -> Value))) $ do {
+s <- successors dir $ fst p;
+let {nv = Map.lookup s m};
+guard $ isJust nv;
+return (s,fromJust nv)}} in do_trace dir m next;
+Nothing -> error "do_trace"
+};
+
+longest_win :: Entry;
+longest_win = maximumBy (\x y -> winlength (snd x) (snd y)) $ Map.toList allmap;
+
+show_longest :: IO();
+show_longest = mapM_ (putStrLn . show_entry test_directory)  $ do_trace test_directory allmap longest_win;
+
+eval_iterate :: IO();
+eval_iterate = do {mapM_ print $ elems test_directory ; mapM_ print $ zip [0::Integer ..]  $map length $ gen_0: iterate_mapreduce gen_0;};
 
 } --end

@@ -90,4 +90,7 @@ xs :: [Float] <- genericReplicateM ((genericLength l)::Integer) randomIO;
 return $ snd $ head $ sortOn fst $ zip xs l;
 };
 
+winlength :: Value -> Value -> Ordering;
+winlength (Value x) (Value y) = compare x y;
+
 } --end
