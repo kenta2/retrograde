@@ -11,8 +11,8 @@ import Control.Exception(assert);
 retrograde_trace_placeholder :: ();
 retrograde_trace_placeholder = trace "trace" $ assert False ();
 
-mapReduce :: forall a key value b. Ord key => (a -> [(key,value)]) -> (key -> [(a,value)] -> [b]) -> [a] -> [b];
-mapReduce mapfn redfn input = concatMap (uncurry redfn) $ shuffle $ do {
+mapReduce :: forall a key value b. Ord key => (a -> [(key,value)]) -> (key -> [(a,value)] -> b) -> [a] -> [b];
+mapReduce mapfn redfn input = map (uncurry redfn) $ shuffle $ do {
  x :: a <- input;
  y :: (key,value) <- mapfn x;
  return (x,y); -- all pairs

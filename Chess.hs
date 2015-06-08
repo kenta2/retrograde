@@ -280,19 +280,19 @@ Just captured -> assert (captured /= i) [(captured, Nothing)]})
 , other color);
 };
 
-redfn :: Directory -> MovePosition -> [((MovePosition,Value),Epoch)] -> [(MovePosition,Value)];
+redfn :: Directory -> MovePosition -> [((MovePosition,Value),Epoch)] -> Maybe (MovePosition,Value);
 redfn dir mp esuccs = if any (\case {(_,Known) -> True;_->False}) esuccs
-then [] -- skip already known values
+then Nothing -- skip already known values
 else case value_via_successors dir mp (map fst esuccs) of {
-Nothing -> [];
-Just v -> [(mp,v)];
+Nothing -> Nothing;
+Just v -> Just (mp,v);
 };
 
 mapfn :: Directory -> (MovePosition, Value) -> [(MovePosition, Epoch)];
 mapfn dir (pos,_val) = (pos,Known):(map (\x -> (x, Unknown)) $ retrograde_positions dir pos);
 
 do_mapreduce :: Directory -> [Entry] -> [Entry];
-do_mapreduce dir = mapReduce (mapfn dir) (redfn dir);
+do_mapreduce dir = catMaybes . mapReduce (mapfn dir) (redfn dir);
 
 test_retro1 :: Directory -> MovePosition -> [(MovePosition, Bool)];
 test_retro1 dir pos = do {
