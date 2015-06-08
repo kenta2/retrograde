@@ -35,16 +35,16 @@ main :: IO();
 -- 3 = 562464
 -- 4 = 62432010
 
--- main = show_longest;
+main = show_longest;
 
 -- main = three_pieces_length_check;
 
 -- main = getArgs >>= try_three_pieces . read . head;
-main = do {
+{-main = do {
  hSetBuffering stdout LineBuffering;
  putStrLn "start";
  -- rand_three_pieces;
  -- print $ length $ three_pieces();
  getArgs >>= try_three_pieces . read . head;
-};
+};-}
 }

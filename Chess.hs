@@ -23,7 +23,7 @@ stalemate_draw = True;
 
 -- test directory
 test_directory :: Directory;
-test_directory = error "test_directory";
+test_directory = dir_qr;
 
 -- to avoid the redundancy warning
 trace_placeholder :: ();
@@ -281,11 +281,11 @@ Just captured -> assert (captured /= i) [(captured, Nothing)]})
 };
 
 redfn :: Directory -> MovePosition -> [((MovePosition,Value),Epoch)] -> Maybe (MovePosition,Value);
-redfn dir mp esuccs = if any (\case {(_,Known) -> True;_->False}) esuccs
-then Nothing -- skip already known values
-else case value_via_successors dir mp (map fst esuccs) of {
-Nothing -> Nothing;
-Just v -> Just (mp,v);
+redfn dir mp esuccs = do {
+ -- skip already known values
+ guard $ all (\case {(_,Known) -> False;_->True}) esuccs;
+ v <- value_via_successors dir mp (map fst esuccs);
+ return (mp,v);
 };
 
 mapfn :: Directory -> (MovePosition, Value) -> [(MovePosition, Epoch)];
@@ -444,7 +444,10 @@ longest_win :: Entry;
 longest_win = maximumBy (\x y -> winlength (snd x) (snd y)) $ Map.toList allmap;
 
 show_longest :: IO();
-show_longest = mapM_ (putStrLn . show_entry test_directory)  $ do_trace test_directory allmap longest_win;
+show_longest = do {
+mapM_ print $ assocs test_directory ;
+mapM_ (putStrLn . show_entry test_directory)  $ do_trace test_directory allmap longest_win;
+};
 
 eval_iterate :: IO();
 eval_iterate = do {mapM_ print $ elems test_directory ; mapM_ print $ zip [0::Integer ..]  $map length $ gen_0: iterate_mapreduce test_directory gen_0;};
