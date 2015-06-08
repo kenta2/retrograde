@@ -117,7 +117,7 @@ eightway = nub . eightway_with_duplicates;
 
 extend :: Offset -> [Offset];
 extend (x,y) = do {
-s <- enumFromTo 1 (unBoardsize board_size);
+s <- enumFromTo 1 $ pred $ unBoardsize board_size;
 return (s*x,s*y);
 };
 
