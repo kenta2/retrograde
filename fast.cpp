@@ -55,6 +55,10 @@ inline bool in_bounds(const Coord& p){
 
 enum Color { White, Black};
 
+inline bool duplicate_entry(const vector<Coord>& v, const Coord& target){
+  return find(v.cbegin(), v.cend(), target)!=v.cend();
+}
+
 class Piece {
   Orthogonal orthogonal;
   Diagonal diagonal;
@@ -110,12 +114,12 @@ public:
             answer.push_back(pos);
         }
 
-    // dabbaba and alfil induce duplicates XXX
+    // dabbaba and alfil induce duplicates with rook and bishop
     if(Dabbaba::Dabbaba_single == dabbaba)
       for(int i=0;i<4;++i){
         Coord pos=Coord(mylocation.first+2*dir_orthogonal[i].first,
                         mylocation.second+2*dir_orthogonal[i].second);
-        if(in_bounds(pos) && (!board.occupied(pos) || (board.color_at(pos)!=mycolor)))
+        if(in_bounds(pos) && (!board.occupied(pos) || (board.color_at(pos)!=mycolor)) && (orthogonal != Orthogonal::Rook || !duplicate_entry(answer,pos)))
           answer.push_back(pos);
       }
     else if(Dabbaba::Dabbaba_rider == dabbaba)
@@ -125,10 +129,12 @@ public:
           if(!in_bounds(pos)) break;
           if(board.occupied(pos)){
             if(board.color_at(pos)!=mycolor)
-              answer.push_back(pos);
+              if (orthogonal != Orthogonal::Rook || !duplicate_entry(answer,pos))
+                answer.push_back(pos);
             break;
           } else
-            answer.push_back(pos);
+            if (orthogonal != Orthogonal::Rook || !duplicate_entry(answer,pos))
+              answer.push_back(pos);
         }
 
     if(Knight::YesKnight == knight)
@@ -142,7 +148,7 @@ public:
       for(int i=0;i<4;++i){
         Coord pos=Coord(mylocation.first+2*dir_diagonal[i].first,
                         mylocation.second+2*dir_diagonal[i].second);
-        if(in_bounds(pos) && (!board.occupied(pos) || (board.color_at(pos)!=mycolor)))
+        if(in_bounds(pos) && (!board.occupied(pos) || (board.color_at(pos)!=mycolor)) && (diagonal != Diagonal::Bishop || !duplicate_entry(answer,pos)) )
           answer.push_back(pos);
       }
 

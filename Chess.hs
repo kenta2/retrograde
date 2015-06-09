@@ -571,8 +571,7 @@ take2 _ = error "odd number for take2";
 
 verify_piece_locs :: IO ();
 verify_piece_locs = do {
--- (map head . group) because of duplicates in Alfil and Dabbaba
-ll :: [[Location]] <- getContents >>= return . map (map Location . map head . group . sort . take2 . map read . words) . lines;
+ll :: [[Location]] <- getContents >>= return . map (map Location . sort . take2 . map read . words) . lines;
 if length ll /= length verify_piece_locs_inputs
 then error "not same length"
 else return();
