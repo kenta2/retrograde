@@ -39,6 +39,7 @@ main = do {
  hSetBuffering stdout LineBuffering;
  getArgs >>= \case {
 ["longest"] -> show_longest;
+["allcpp"] -> putStrLn all_pieces_for_cplusplus;
 _ -> error "need args";
 }};
 

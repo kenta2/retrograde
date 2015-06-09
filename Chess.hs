@@ -413,7 +413,7 @@ stalemates dir = do {
 };
 
 all_pieces :: [Piece];
-all_pieces = range (minBound, maxBound);
+all_pieces = whole_range;
 
 piece_set :: Integer -> [[Piece]];
 piece_set size = do {
@@ -522,6 +522,24 @@ putStr "seed ";
 print n;
 try_three_pieces n;
 rand_three_pieces;
+};
+
+whole_range :: (Ix a, Bounded a) => [a];
+whole_range = range (minBound, maxBound);
+
+all_pieces_for_cplusplus :: String;
+all_pieces_for_cplusplus = concat $ intersperse ",\n" $ do {
+o :: Orthogonal <- whole_range;
+d :: Diagonal <- whole_range;
+k :: Knight <- whole_range;
+a :: Alfil <- whole_range;
+da :: Dabbaba <- whole_range;
+return $ "Piece(Orthogonal::"++show o
+           ++", Diagonal::"++show d
+           ++", Knight::"++show k
+           ++", Alfil::"++show a
+           ++", Dabbaba::"++show da
+           ++", White, true)";
 };
 
 } --end

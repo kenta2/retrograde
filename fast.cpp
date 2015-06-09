@@ -2,6 +2,10 @@
 #include <utility>
 #include <cstdint>
 #include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <cassert>
+#include <string>
 
 using namespace std;
 
@@ -29,6 +33,8 @@ const int8_t board_size_max = max(num_rows, num_columns);
 class Bitboard{
   uint8_t b[num_rows][num_columns];
 public:
+  Bitboard() : b {0}
+  {}
   bool occupied(const Coord& p) const {
     return b[p.first][p.second];
   }
@@ -60,7 +66,7 @@ public:
   Piece(Orthogonal o, Diagonal d, Knight k, Alfil a, Dabbaba da, Color c, bool roy)
     : orthogonal(o), diagonal(d), knight(k), alfil(a), dabbaba(da), color(c), is_royal(roy)
   {}
-  vector<Coord> moves(const Coord& mylocation, const Bitboard& board, const uint8_t mycolor){
+  vector<Coord> moves(const Coord& mylocation, const Bitboard& board, const uint8_t mycolor) const {
     vector<Coord> answer;
 
     if(Orthogonal::Wazir == orthogonal)
@@ -142,7 +148,96 @@ public:
 
     return answer;
   }
+  string toString() const {
+    string answer("Piece(Orthogonal::");
+    if(Orthogonal::NoOrthogonal == orthogonal)
+      answer+="NoOrthogonal";
+    else if(Orthogonal::Wazir == orthogonal)
+      answer+="Wazir";
+    else if(Orthogonal::Rook == orthogonal)
+      answer+="Rook";
+    else assert(0);
+    answer += ", Diagonal::";
+    if(Diagonal::NoDiagonal == diagonal)
+      answer+="NoDiagonal";
+    else if(Diagonal::Ferz == diagonal)
+      answer+="Ferz";
+    else if(Diagonal::Bishop == diagonal)
+      answer+="Bishop";
+    else assert(0);
+    answer += ", Knight::";
+    if(Knight::NoKnight==knight)
+      answer+="NoKnight";
+    else if (Knight::YesKnight==knight)
+      answer+="YesKnight";
+    answer += ", Alfil::";
+    if(Alfil::NoAlfil==alfil)
+      answer+="NoAlfil";
+    else if (Alfil::YesAlfil==alfil)
+      answer+="YesAlfil";
+    else assert(0);
+    answer += ", Dabbaba::";
+    if(Dabbaba::NoDabbaba == dabbaba)
+      answer+="NoDabbaba";
+    else if(Dabbaba::Dabbaba_single == dabbaba)
+      answer+="Dabbaba_single";
+    else if(Dabbaba::Dabbaba_rider == dabbaba)
+      answer+="Dabbaba_rider";
+    else assert(0);
+    answer+=", ";
+    if(0==color)
+      answer+="White";
+    else if (1==color)
+      answer+="Black";
+    else assert(0);
+    answer+=", ";
+    if(is_royal)
+      answer+="true";
+    else
+      answer+="false";
+    answer+=")";
+    return answer;
+  }
 };
 
+vector<Piece> all_pieces{
+#include "all_pieces.cpp"
+};
 
-int main(void){}
+void printlocs(const Piece& p){
+  Bitboard b;
+  for(int8_t i=0;i<num_rows;++i)
+    for(int8_t j=0;j<num_columns;++j){
+      assert(!b.occupied(Coord(i,j)));
+    }
+  for(int8_t i=0;i<num_rows;++i)
+    for(int8_t j=0;j<num_columns;++j){
+      vector<Coord> v = p.moves(Coord(i,j),b,0);
+      //for_each(v.begin(), v.end(), [](Coord& c){}); //lambda function
+      for(const Coord& c : v)
+        cout << " " << static_cast<int>(c.first) <<" "<< static_cast<int>(c.second);
+      cout << endl;
+    }
+}
+
+int main(int argc, char**argv){
+  if(argc<2){
+    cerr << "need args"<< endl;
+    return 1;
+  }
+  if(0==strcmp(argv[1],"list")){
+    cout << all_pieces.size() << endl;
+  } else if (0==strcmp(argv[1],"locs")){
+    //for(int p_index=0;p_index<static_cast<int>(sizeof(all_pieces)/sizeof(Piece));++p_index)
+    //for_each(all_pieces.begin(), all_pieces.end(), [](Piece &p){ printlocs(p); });
+    for(const Piece& p : all_pieces)
+      printlocs(p);
+  } else if (0==strcmp(argv[1],"printp")){
+    for(const Piece& p : all_pieces){
+      cout << p.toString();
+      cout << "," << endl;
+    }
+  } else {
+    cerr << "unknown arg" << endl;
+  }
+}
