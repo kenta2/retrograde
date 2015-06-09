@@ -35,7 +35,12 @@ main :: IO();
 -- 3 = 562464
 -- 4 = 62432010
 
-main = show_longest;
+main = do {
+ hSetBuffering stdout LineBuffering;
+ getArgs >>= \case {
+["longest"] -> show_longest;
+_ -> error "need args";
+}};
 
 -- main = three_pieces_length_check;
 

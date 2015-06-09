@@ -16,10 +16,10 @@ import Data.Ord;
 import System.Random(randomRIO);
 
 max_row :: Row;
-max_row = Row 3;
+max_row = Row 4;
 
 max_column :: Column;
-max_column = Column 3;
+max_column = Column 4;
 
 stalemate_draw :: Bool;
 stalemate_draw = True;
@@ -42,8 +42,8 @@ newtype Piecenum = Piecenum Integer deriving (Eq, Ord, Ix, Show);
 
 data Orthogonal = NoOrthogonal | Wazir | Rook deriving (Show, Eq, Ord, Bounded, Ix);
 data Diagonal = NoDiagonal | Ferz | Bishop deriving (Show, Eq, Ord, Bounded, Ix);
-data Knight = NoKnight | Knight deriving (Show, Eq, Ord, Bounded, Ix);
-data Alfil = NoAlfil | Alfil deriving (Show, Eq, Ord, Bounded, Ix);
+data Knight = NoKnight | YesKnight deriving (Show, Eq, Ord, Bounded, Ix);
+data Alfil = NoAlfil | YesAlfil deriving (Show, Eq, Ord, Bounded, Ix);
 data Dabbaba = NoDabbaba | Dabbaba_single {- | Dabbaba_rider -} deriving (Show,Eq, Ord, Bounded, Ix);
 data Royal = Commoner | Royal deriving (Show, Eq, Ord, Bounded, Ix);
 
@@ -68,7 +68,7 @@ rook :: Color -> Piece;
 rook = Piece Commoner Rook NoDiagonal NoKnight NoAlfil NoDabbaba;
 
 knight :: Color -> Piece;
-knight = Piece Commoner NoOrthogonal NoDiagonal Knight NoAlfil NoDabbaba;
+knight = Piece Commoner NoOrthogonal NoDiagonal YesKnight NoAlfil NoDabbaba;
 
 bishop :: Color -> Piece;
 bishop = Piece Commoner NoOrthogonal Bishop NoKnight NoAlfil NoDabbaba;
@@ -79,7 +79,7 @@ td = test_directory;
 dir_experiment :: Directory;
 dir_experiment = listArray (Piecenum 0, Piecenum 3) [king White, king Black
 , Piece Commoner NoOrthogonal Ferz NoKnight NoAlfil NoDabbaba White
-, Piece Commoner NoOrthogonal NoDiagonal Knight NoAlfil NoDabbaba White
+, Piece Commoner NoOrthogonal NoDiagonal YesKnight NoAlfil NoDabbaba White
 ];
 
 dir_bn :: Directory;
@@ -166,11 +166,11 @@ diagmoves Bishop me pos = concatMap (extendUntilOccupied me pos) $ eightway (1,1
 
 knightmoves :: Knight -> Location -> Position -> [Location];
 knightmoves NoKnight _ _ = [];
-knightmoves Knight me _ = map (add_offset me) $ eightway (1,2);
+knightmoves YesKnight me _ = map (add_offset me) $ eightway (1,2);
 
 alfilmoves :: Alfil -> Location -> Position -> [Location];
 alfilmoves NoAlfil _ _ = [];
-alfilmoves Alfil me _ = map (add_offset me) $ eightway (2,2);
+alfilmoves YesAlfil me _ = map (add_offset me) $ eightway (2,2);
 
 dabbabamoves :: Dabbaba -> Location -> Position -> [Location];
 dabbabamoves NoDabbaba _ _ = [];
@@ -441,8 +441,11 @@ flip_color (Piece x1 x2 x3 x4 x5 x6 c) = Piece x1 x2 x3 x4 x5 x6 $ other c;
 
 type Map_v = Map MovePosition Value;
 
+all_list :: [[Entry]];
+all_list = gen_0:iterate_mapreduce test_directory gen_0;
+
 allmap :: Map_v;
-allmap = Map.fromList $ concat $ gen_0:iterate_mapreduce test_directory gen_0;
+allmap = Map.fromList $ concat all_list;
 
 do_trace :: Directory -> Map_v -> Entry -> [Entry];
 do_trace dir m p = p:case Map.lookup (fst p) m of {
@@ -460,12 +463,17 @@ longest_win = maximumBy (\x y -> winlength (snd x) (snd y)) $ Map.toList allmap;
 
 show_longest :: IO();
 show_longest = do {
-mapM_ print $ assocs test_directory ;
+eval_iterate;
 mapM_ (putStrLn . show_entry test_directory)  $ do_trace test_directory allmap longest_win;
 };
 
+integers_from_zero :: [Integer];
+integers_from_zero = enumFrom 0;
 eval_iterate :: IO();
-eval_iterate = do {mapM_ print $ elems test_directory ; mapM_ print $ zip [0::Integer ..]  $map length $ gen_0: iterate_mapreduce test_directory gen_0;};
+eval_iterate = do {
+ mapM_ print $ assocs test_directory;
+ mapM_ print $ zip integers_from_zero  $map length all_list;
+};
 
 three_pieces :: [[Piece]];
 three_pieces = piece_set2 4 [];
@@ -484,7 +492,7 @@ make_dir pcs = listArray (Piecenum 0, Piecenum $ pred $ genericLength pcs) pcs;
 try_three_pieces :: Integer -> IO();
 try_three_pieces n = do {
 let {pcs = genericIndex three_pieces n};
-mapM_ print $ zip [(0::Integer)..] pcs;
+mapM_ print $ zip integers_from_zero pcs;
 let {
  dir :: Directory;
  dir = make_dir pcs;
