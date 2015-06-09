@@ -40,6 +40,7 @@ main = do {
  getArgs >>= \case {
 ["longest"] -> show_longest;
 ["allcpp"] -> putStrLn all_pieces_for_cplusplus;
+["v1"] -> verify_piece_locs;
 _ -> error "need args";
 }};
 

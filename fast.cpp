@@ -9,6 +9,9 @@
 
 using namespace std;
 
+const int8_t num_rows=5;
+const int8_t num_columns=5;
+
 //typedef vector< pair <int8_t,int8_t> > Coords;
 //  dir_orth.push_back(pair<int8_t,int8_t>(0,1));
 
@@ -26,8 +29,6 @@ enum class Dabbaba {NoDabbaba, Dabbaba_single, Dabbaba_rider};
 enum class Knight {NoKnight, YesKnight};
 enum class Alfil {NoAlfil, YesAlfil};
 
-const int8_t num_rows=4;
-const int8_t num_columns=4;
 const int8_t board_size_max = max(num_rows, num_columns);
 
 class Bitboard{
@@ -109,7 +110,7 @@ public:
             answer.push_back(pos);
         }
 
-
+    // dabbaba and alfil induce duplicates XXX
     if(Dabbaba::Dabbaba_single == dabbaba)
       for(int i=0;i<4;++i){
         Coord pos=Coord(mylocation.first+2*dir_orthogonal[i].first,

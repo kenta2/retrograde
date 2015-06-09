@@ -44,7 +44,7 @@ data Orthogonal = NoOrthogonal | Wazir | Rook deriving (Show, Eq, Ord, Bounded, 
 data Diagonal = NoDiagonal | Ferz | Bishop deriving (Show, Eq, Ord, Bounded, Ix);
 data Knight = NoKnight | YesKnight deriving (Show, Eq, Ord, Bounded, Ix);
 data Alfil = NoAlfil | YesAlfil deriving (Show, Eq, Ord, Bounded, Ix);
-data Dabbaba = NoDabbaba | Dabbaba_single {- | Dabbaba_rider -} deriving (Show,Eq, Ord, Bounded, Ix);
+data Dabbaba = NoDabbaba | Dabbaba_single | Dabbaba_rider deriving (Show,Eq, Ord, Bounded, Ix);
 data Royal = Commoner | Royal deriving (Show, Eq, Ord, Bounded, Ix);
 
 -- | Maximizing or Minimizing the Value of a position
@@ -175,7 +175,7 @@ alfilmoves YesAlfil me _ = map (add_offset me) $ eightway (2,2);
 dabbabamoves :: Dabbaba -> Location -> Position -> [Location];
 dabbabamoves NoDabbaba _ _ = [];
 dabbabamoves Dabbaba_single me _ = map (add_offset me) $ eightway (2,0);
--- dabbabamoves Dabbaba_rider me pos = concatMap (extendUntilOccupied me pos) $ eightway (2,0);
+dabbabamoves Dabbaba_rider me pos = concatMap (extendUntilOccupied me pos) $ eightway (2,0);
 
 board_bounds :: (Location,Location);
 board_bounds = (Location (Row 0,Column 0),Location (max_row, max_column));
@@ -542,4 +542,40 @@ return $ "Piece(Orthogonal::"++show o
            ++", White, true)";
 };
 
+moves_on_empty_board :: Piece -> Location -> [Location];
+moves_on_empty_board p mylocation = let {
+ dir :: Directory;
+ dir = make_dir [p];
+ pos :: Position;
+ pos = listArray (Piecenum 0, Piecenum 0) [Just mylocation];
+} in sort $ moves dir pos (Piecenum 0);
+
+all_simple_pieces :: [Piece];
+all_simple_pieces = filter is_simple_piece all_pieces;
+
+is_simple_piece :: Piece -> Bool;
+is_simple_piece (Piece Royal _ _ _ _ _ White) = True;
+is_simple_piece _ = False;
+
+verify_piece_locs_inputs :: [(Piece, Location, [Location])];
+verify_piece_locs_inputs = do {
+p <- all_simple_pieces;
+l <- range board_bounds;
+return (p,l,moves_on_empty_board p l);
+};
+
+take2 :: [Integer] -> [Offset];
+take2 [] = [];
+take2 (x:y:rest) = (Row x, Column y): take2 rest;
+take2 _ = error "odd number for take2";
+
+verify_piece_locs :: IO ();
+verify_piece_locs = do {
+-- (map head . group) because of duplicates in Alfil and Dabbaba
+ll :: [[Location]] <- getContents >>= return . map (map Location . map head . group . sort . take2 . map read . words) . lines;
+if length ll /= length verify_piece_locs_inputs
+then error "not same length"
+else return();
+zipWithM_ (\(a,b,l1) l2 -> print (a,b,if l1==l2 then (True,[],[]) else (False,l1,l2))) verify_piece_locs_inputs ll;
+}
 } --end
