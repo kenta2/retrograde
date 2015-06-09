@@ -31,16 +31,22 @@ enum class Alfil {NoAlfil, YesAlfil};
 
 const int8_t board_size_max = max(num_rows, num_columns);
 
+enum Color { White, Black};
+
 class Bitboard{
-  uint8_t b[num_rows][num_columns];
 public:
+  uint8_t b[num_rows][num_columns];
+
   Bitboard() : b {0}
   {}
   bool occupied(const Coord& p) const {
     return b[p.first][p.second];
   }
-  uint8_t color_at(const Coord& p) const {
-    return b[p.first][p.second]>>1;
+  Color color_at(const Coord& p) const {
+    return static_cast<Color>((b[p.first][p.second]>>1)&1);
+  }
+  uint8_t index(const Coord& p) const {
+    return b[p.first][p.second]>>2;
   }
 };
 
@@ -52,8 +58,6 @@ inline bool in_bounds(const Coord& p){
   return (p.first>=0)&&(p.first<num_rows)&&
     (p.second>=0)&&(p.second<num_columns);
 }
-
-enum Color { White, Black};
 
 inline bool duplicate_entry(const vector<Coord>& v, const Coord& target){
   return find(v.cbegin(), v.cend(), target)!=v.cend();
@@ -227,6 +231,78 @@ void printlocs(const Piece& p){
     }
 }
 
+class MaybeLocation {
+  Coord l;
+public:
+  bool alive;
+  Coord get() const {
+    assert(alive);
+    return l;
+  }
+  void set(const Coord& c){
+    assert(alive);
+    l=c;
+  }
+};
+
+typedef vector<Piece> Directory;
+
+Piece king(Color c){
+  return Piece(Orthogonal::Wazir, Diagonal::Ferz, Knight::NoKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, c, true);
+}
+
+Directory dir_qr{king(White),king(Black),
+    Piece(Orthogonal::Rook, Diagonal::Bishop, Knight::NoKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, White, false),
+    Piece(Orthogonal::Rook, Diagonal::NoDiagonal, Knight::NoKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, Black, false)};
+
+Directory test_directory(dir_qr);
+
+const int NUM_PIECES=4;
+typedef MaybeLocation Position[NUM_PIECES];
+
+struct MovePosition {
+  Color to_move;
+  Position position;
+};
+
+inline bool has_king(const Directory& dir, const MovePosition& mp){
+  for(const Piece& p : dir)
+    if (p.color==mp.to_move && p.is_royal)
+      return true;
+  return false;
+}
+
+void fill_board(Bitboard *board, const Directory& dir, const Position& pos){
+  for(int i=0;i<NUM_PIECES;++i)
+    if(pos[i].alive)
+      board->b[pos[i].get().first][pos[i].get().second]=1|(dir[i].color<<1)|(i<<2);
+}
+
+Color other(Color x){
+  return static_cast<Color>(1-x);
+}
+
+vector<MovePosition> successors(const Directory& dir, const MovePosition& mp){
+  vector<MovePosition> answer;
+  if(!has_king(dir,mp))
+    return answer;
+  Bitboard board;
+  fill_board(&board,dir,mp.position);
+  for(int i=0;i<NUM_PIECES;++i){
+    if(dir[i].color == mp.to_move && mp.position[i].alive){
+      MovePosition next(mp);
+      next.to_move= other(mp.to_move);
+      for(const Coord& newloc : dir[i].moves(mp.position[i].get(), board, mp.to_move)){
+        next.position[i].set(newloc);
+        if(board.occupied(newloc)) // capture
+          next.position[board.index(newloc)].alive=false;
+        answer.push_back(next);
+      }
+    }
+  }
+  return answer;
+}
+
 int main(int argc, char**argv){
   if(argc<2){
     cerr << "need args"<< endl;
@@ -244,7 +320,13 @@ int main(int argc, char**argv){
       cout << p.toString();
       cout << "," << endl;
     }
-  } else {
+  } else if (0==strcmp(argv[1],"arrtest")){
+    cout << sizeof(Position) << endl;
+  } else if (0==strcmp(argv[1],"colortest")){
+    assert(other(White)==Black);
+    assert(other(Black)==White);
+  }
+  else {
     cerr << "unknown arg" << endl;
   }
 }
