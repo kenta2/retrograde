@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, LambdaCase #-}
+{-# LANGUAGE ScopedTypeVariables, LambdaCase, GeneralizedNewtypeDeriving #-}
 module Chess where {
 import Data.List;
 import Control.Monad;
@@ -15,8 +15,11 @@ import Control.Exception(assert);
 import Data.Ord;
 import System.Random(randomRIO);
 
-board_size :: Boardsize;
-board_size = Boardsize 4;
+max_row :: Row;
+max_row = Row 3;
+
+max_column :: Column;
+max_column = Column 3;
 
 stalemate_draw :: Bool;
 stalemate_draw = True;
@@ -28,6 +31,10 @@ test_directory = dir_qr;
 -- to avoid the redundancy warning
 trace_placeholder :: ();
 trace_placeholder = trace "trace" ();
+
+type Offset = (Row,Column);
+newtype Row = Row Integer deriving (Eq, Ord, Enum, Ix, Show);
+newtype Column = Column Integer deriving (Eq, Ord, Enum, Ix, Show);
 
 type Position = Array Piecenum (Maybe Location);
 newtype Location = Location Offset deriving (Eq, Ord, Ix, Show);
@@ -93,18 +100,18 @@ dir_qr = listArray (Piecenum 0, Piecenum 3) [king White, king Black, queen White
 dir_kmk :: Directory;
 dir_kmk = listArray (Piecenum 0, Piecenum 2) [king White, king Black, man White];
 
-type Offset = (Integer,Integer);
+type IOffset = (Integer,Integer);
 
-reflect45 :: Offset -> Offset;
+reflect45 :: IOffset -> IOffset;
 reflect45 (x,y) = (y,x);
 
-reflectx :: Offset -> Offset;
+reflectx :: IOffset -> IOffset;
 reflectx (x,y) = (x,negate y);
 
-reflecty :: Offset -> Offset;
+reflecty :: IOffset -> IOffset;
 reflecty (x,y) = (negate x,y);
 
-eightway_with_duplicates :: Offset -> [Offset];
+eightway_with_duplicates :: IOffset -> [IOffset];
 eightway_with_duplicates z = do {
 p <- [id,reflect45];
 q <- [id,reflectx];
@@ -112,14 +119,18 @@ r <- [id, reflecty];
 return $ r $ q $ p $ z;
 };
 
-eightway :: Offset -> [Offset];
-eightway = nub . eightway_with_duplicates;
+eightway :: IOffset -> [Offset];
+eightway = map (\z -> (Row $ fst z, Column $ snd z)) . nub . eightway_with_duplicates;
 
 extend :: Offset -> [Offset];
-extend (x,y) = do {
-s <- enumFromTo 1 $ pred $ unBoardsize board_size;
-return (s*x,s*y);
+extend (Row x,Column y) = do {
+s <- enumFromTo 1 $ unBoardsize board_max;
+return (Row $ s*x,Column $ s*y);
 };
+
+board_max :: Boardsize;
+board_max = case (max_row, max_column) of
+{ (Row r, Column c) -> Boardsize $ max r c };
 
 newtype Boardsize = Boardsize Integer deriving (Show);
 
@@ -167,7 +178,7 @@ dabbabamoves Dabbaba_single me _ = map (add_offset me) $ eightway (2,0);
 -- dabbabamoves Dabbaba_rider me pos = concatMap (extendUntilOccupied me pos) $ eightway (2,0);
 
 board_bounds :: (Location,Location);
-board_bounds = (Location (0,0),Location (pred $ unBoardsize board_size, pred $ unBoardsize board_size));
+board_bounds = (Location (Row 0,Column 0),Location (max_row, max_column));
 
 empty :: Position -> Location -> Bool;
 empty p l = inRange board_bounds l
@@ -176,7 +187,13 @@ empty p l = inRange board_bounds l
 type Directory = Array Piecenum Piece;
 
 add_offset :: Location -> Offset -> Location;
-add_offset (Location (ox,oy)) (dx,dy) = Location (ox+dx,oy+dy);
+add_offset (Location (ox,oy)) (dx,dy) = Location (row_add ox dx,column_add oy dy);
+
+row_add :: Row -> Row -> Row;
+row_add (Row x) (Row y) = Row $ x+y;
+
+column_add :: Column -> Column -> Column;
+column_add (Column x) (Column y) = Column $ x+y;
 
 take_including_first_failure :: (a -> Bool) -> [a] -> [a];
 take_including_first_failure p l = case span p l of {
@@ -353,11 +370,9 @@ show_board_numbers :: Position -> String;
 show_board_numbers = show_board_f (\(Piecenum n) -> show n);
 
 show_board_f ::(Piecenum -> String) -> Position -> String;
-show_board_f f pos = let {intrange :: [Integer];
-intrange = enumFromTo 0 $ pred $ unBoardsize board_size;
-} in unlines $ do { rank <- reverse $ intrange;
+show_board_f f pos = unlines $ do { rank <- reverse $ enumFromTo (Row 0) max_row;
 return $ unwords $ do {
-file <- intrange;
+file <- enumFromTo (Column 0) max_column;
 return $ case at_location pos $ Location (rank, file) of {
 Nothing -> "-";
 Just num -> f num;
