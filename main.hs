@@ -41,6 +41,7 @@ main = do {
 ["longest"] -> show_longest;
 ["allcpp"] -> putStrLn all_pieces_for_cplusplus;
 ["v1"] -> verify_piece_locs;
+["v2"] -> verify_successors;
 _ -> error "need args";
 }};
 

@@ -6,16 +6,22 @@
 #include <cstring>
 #include <cassert>
 #include <string>
+#include <iomanip>
 
 using namespace std;
 
-const int8_t num_rows=5;
-const int8_t num_columns=5;
+const int8_t num_rows=4;
+const int8_t num_columns=4;
 
 //typedef vector< pair <int8_t,int8_t> > Coords;
 //  dir_orth.push_back(pair<int8_t,int8_t>(0,1));
 
 typedef pair <int8_t,int8_t> Coord;
+
+ostream& operator<<(ostream &os, const Coord& c){
+  os << '(' << static_cast<int>(c.first) << ',' << static_cast<int>(c.second) << ')';
+  return os;
+}
 
 Coord dir_orthogonal[]={Coord(0,1),Coord(1,0),Coord(-1,0),Coord(0,-1)};
 Coord dir_diagonal[]={Coord(1,1),Coord(1,-1),Coord(-1,1),Coord(-1,-1)};
@@ -49,6 +55,17 @@ public:
     return b[p.first][p.second]>>2;
   }
 };
+
+ostream& operator<<(ostream& os, const Bitboard& b){
+  for(int i=num_rows-1;i>=0;--i){
+    for(int j=0;j<num_columns;++j){
+      //os << setw(4) << hex << static_cast<int>(b.b[i][j]);
+      os << setw(4) << static_cast<int>(b.index(Coord(i,j)));
+    }
+    os << endl << dec;
+  }
+  return os;
+}
 
 inline Coord add_coord(const Coord& a, const Coord& b){
   return Coord(a.first+b.first, a.second+b.second);
@@ -243,7 +260,20 @@ public:
     assert(alive);
     l=c;
   }
+  int to_numeric() const {
+    if(alive)
+      return static_cast<int>(l.first)*num_columns+l.second;
+    else
+      return static_cast<int>(num_rows)*num_columns;
+  }
 };
+
+ostream& operator<<(ostream& os, const MaybeLocation& object){
+  os << object.to_numeric();
+  return os;
+}
+
+
 
 typedef vector<Piece> Directory;
 
@@ -260,14 +290,22 @@ Directory test_directory(dir_qr);
 const int NUM_PIECES=4;
 typedef MaybeLocation Position[NUM_PIECES];
 
-struct MovePosition {
+class MovePosition {
+public:
   Color to_move;
   Position position;
 };
 
+ostream& operator<<(ostream& os, const MovePosition& object){
+  os << static_cast<int>(object.to_move);
+  for(int i=0;i<NUM_PIECES;++i)
+  os << " " << object.position[i];
+  return os;
+}
+
 inline bool has_king(const Directory& dir, const MovePosition& mp){
-  for(const Piece& p : dir)
-    if (p.color==mp.to_move && p.is_royal)
+  for(int i=0;i<NUM_PIECES;++i)
+    if (dir[i].color==mp.to_move && dir[i].is_royal && mp.position[i].alive)
       return true;
   return false;
 }
@@ -290,18 +328,45 @@ vector<MovePosition> successors(const Directory& dir, const MovePosition& mp){
   fill_board(&board,dir,mp.position);
   for(int i=0;i<NUM_PIECES;++i){
     if(dir[i].color == mp.to_move && mp.position[i].alive){
-      MovePosition next(mp);
-      next.to_move= other(mp.to_move);
       for(const Coord& newloc : dir[i].moves(mp.position[i].get(), board, mp.to_move)){
+        MovePosition next(mp);
+        next.to_move= other(mp.to_move);
         next.position[i].set(newloc);
-        if(board.occupied(newloc)) // capture
+        if(board.occupied(newloc)) { // capture
           next.position[board.index(newloc)].alive=false;
+        }
         answer.push_back(next);
       }
     }
   }
   return answer;
 }
+
+MovePosition gen_qr_test_position(){
+  MovePosition answer;
+  const int8_t pos_qr_arr[4][2]={{3,3},{1,0},{2,2},{0,1}};
+  // const int8_t pos_qr_arr[4][2]={{3,3},{1,0},{2,0},{0,1}};
+  answer.to_move=White;
+  for(int i=0;i<4;++i){
+    answer.position[i].alive=true;
+    answer.position[i].set(Coord(pos_qr_arr[i][0],pos_qr_arr[i][1]));
+  }
+  return answer;
+}
+
+void recursive_successors_test(int depth, const MovePosition& start){
+  if(depth==0)
+    ; //cout << start << endl;
+  else {
+    cout << "# (depth " << depth << ") " << endl;
+    cout << start;
+    for(const MovePosition& p : successors(test_directory, start))
+      cout << " " << p;
+    cout << endl;
+    for(const MovePosition& p : successors(test_directory, start))
+      recursive_successors_test(depth-1,p);
+  }
+};
 
 int main(int argc, char**argv){
   if(argc<2){
@@ -325,8 +390,13 @@ int main(int argc, char**argv){
   } else if (0==strcmp(argv[1],"colortest")){
     assert(other(White)==Black);
     assert(other(Black)==White);
-  }
-  else {
+  } else if (0==strcmp(argv[1],"succtest")){
+    MovePosition start=gen_qr_test_position();
+    int depth=1;
+    if(argc>2)
+      depth=atoi(argv[2]);
+    recursive_successors_test(depth,start);
+  }else {
     cerr << "unknown arg" << endl;
   }
 }

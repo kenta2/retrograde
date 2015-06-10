@@ -16,13 +16,13 @@ import Data.Ord;
 import System.Random(randomRIO);
 
 max_row :: Row;
-max_row = Row 4;
+max_row = Row 3;
 
 max_column :: Column;
-max_column = Column 4;
+max_column = Column 3;
 
 stalemate_draw :: Bool;
-stalemate_draw = True;
+stalemate_draw = False;
 
 -- test directory
 test_directory :: Directory;
@@ -75,6 +75,11 @@ bishop = Piece Commoner NoOrthogonal Bishop NoKnight NoAlfil NoDabbaba;
 
 td :: Directory;
 td = test_directory;
+
+test_position :: MovePosition;
+test_position = (listArray (Piecenum 0, Piecenum 3) $ map (\(x,y) -> Just $ Location (Row x, Column y))
+[(3,3),(1,0),(2,0),(0,1)],Black);
+--[(3,3),(1,0),(2,2),(0,1)],White);
 
 dir_experiment :: Directory;
 dir_experiment = listArray (Piecenum 0, Piecenum 3) [king White, king Black
@@ -576,5 +581,77 @@ if length ll /= length verify_piece_locs_inputs
 then error "not same length"
 else return();
 zipWithM_ (\(a,b,l1) l2 -> print (a,b,if l1==l2 then (True,[],[]) else (False,l1,l2))) verify_piece_locs_inputs ll;
+};
+
+location_from_integer :: Integer -> Maybe Location;
+location_from_integer n = if n<0
+then error "negative location_from_integer"
+else let
+{(num_rows, num_columns) =
+case (max_row, max_column) of
+{(Row rmax, Column cmax) -> (rmax+1, cmax+1)};
+maxsize = num_rows * num_columns
 }
+in if n == maxsize
+then Nothing
+else if n > maxsize
+then error "too big location_from_integer"
+else let {
+ans = divMod n num_rows;
+} in Just $ Location (Row $ fst ans, Column $ snd ans);
+
+read_moveposition :: [Integer] -> MovePosition;
+read_moveposition l = (listArray (bounds test_directory) $ map location_from_integer $ tail l,
+case head l of {
+0 -> White;
+1 -> Black;
+_ -> error "read_moveposition color invalid";
+});
+
+verify_successors_concat :: Integer -> IO();
+verify_successors_concat depth = do {
+s1 :: [MovePosition] <- getContents >>= return . sort . map (read_moveposition . map read . words) . lines;
+-- mapM_ (putStrLn . show_mp undefined) s1;
+let {correct = sort $ recursive_successors depth test_position};
+-- mapM_ (putStrLn . show_mp undefined) correct;
+mapM_ (putStrLn . unwords . map show .  position_to_integer) correct;
+print $ s1==correct;
+};
+
+recursive_successors :: Integer -> MovePosition -> [MovePosition];
+recursive_successors 0 p = [p];
+recursive_successors n p = concatMap (recursive_successors $ pred n) $ successors test_directory p;
+
+location_to_integer :: Maybe Location -> Integer;
+location_to_integer l = let
+{(num_rows, num_columns) =
+case (max_row, max_column) of
+{(Row rmax, Column cmax) -> (rmax+1, cmax+1)};
+maxsize = num_rows * num_columns
+} in case l of {
+Nothing -> maxsize;
+Just (Location (Row r, Column c)) -> r*num_columns +c;
+};
+
+position_to_integer :: MovePosition -> [Integer];
+position_to_integer (p,c) = (case c of {
+White->0;Black->1}):(map location_to_integer $ elems p);
+
+n_chunk :: Integer -> [a] -> [[a]];
+n_chunk i = unfoldr (\l -> if null l then Nothing else Just (genericSplitAt i l));
+
+verify_successors :: IO();
+verify_successors = do {
+ii :: [[[Integer]]] <- getContents >>= return . map (n_chunk 5 . map read . words) . lines;
+(flip mapM_) ii $ (\(h:t) -> do {
+if sort (map read_moveposition t) == (sort $ successors test_directory $ read_moveposition h) then return ()
+else do {
+print h;
+print $ elems $ fst $ read_moveposition h;
+print t;
+}});
+return ();
+};
+
+
 } --end
