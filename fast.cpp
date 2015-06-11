@@ -12,6 +12,7 @@ using namespace std;
 
 const int8_t num_rows=4;
 const int8_t num_columns=5;
+const int8_t POSITION_POSSIBILITIES=1+num_rows*num_columns; // and piece is nowhere
 
 //typedef vector< pair <int8_t,int8_t> > Coords;
 //  dir_orth.push_back(pair<int8_t,int8_t>(0,1));
@@ -261,10 +262,20 @@ public:
     l=c;
   }
   int to_numeric() const {
-    if(alive)
+    if(alive){
+      assert(in_bounds(l));
       return static_cast<int>(l.first)*num_columns+l.second;
-    else
+    }else
       return static_cast<int>(num_rows)*num_columns;
+  }
+  void from_numeric(int input){
+    if(input==static_cast<int>(num_rows)*num_columns)
+      alive=false;
+    else {
+      alive=true;
+      l.second=input%num_columns;
+      l.first=input/num_columns;
+    }
   }
 };
 
@@ -295,6 +306,29 @@ public:
   Color to_move;
   Position position;
 };
+
+typedef int16_t Value;
+
+class Table {
+// dimensions = 1+NUM_PIECES
+  Value table[2][POSITION_POSSIBILITIES][POSITION_POSSIBILITIES][POSITION_POSSIBILITIES][POSITION_POSSIBILITIES];
+public:
+  Table() : table {{{{{0}}}}} // 0 = unknown
+  {}
+#define INDEX table[static_cast<int>(p.to_move)] \
+      [p.position[0].to_numeric()] \
+      [p.position[1].to_numeric()] \
+      [p.position[2].to_numeric()] \
+      [p.position[3].to_numeric()] \
+
+  Value lookup(const MovePosition& p) const {
+    return INDEX;
+  }
+  void set(const MovePosition&p, Value v){
+    INDEX = v;
+  }
+};
+
 
 ostream& operator<<(ostream& os, const MovePosition& object){
   os << static_cast<int>(object.to_move);
@@ -367,7 +401,104 @@ void recursive_successors_test(int depth, const MovePosition& start){
     for(const MovePosition& p : successors(test_directory, start))
       recursive_successors_test(depth-1,p);
   }
-};
+}
+
+const Value LOSS = static_cast<Value>(0x8001);
+const Value DRAW = 1;
+
+/*
+void backward_the_hard_way(Value* v){
+  assert(*v);
+  *v >>= 1;
+  assert(*v);
+  if ((*v)<0)
+    (*v)++;
+  else
+    (*v)--;
+  (*v)=-(*v);
+  (*v)<<=1;
+  (*v)|=1;
+}
+*/
+
+void backward_the_easy_way(Value *v){
+  assert(*v);
+  assert((*v)!=DRAW);
+  if((*v)<0)
+    (*v)=-(*v);
+  else
+    (*v)=-((*v)-1);  //-4 replicates backward_the_hard_way
+  // but -1 allows mate in 32000
+}
+
+bool update_table(const Directory& dir, Table* table, const MovePosition& p){
+  Value old_value=table->lookup(p);
+#ifdef NDEBUG
+  if(old_value)return false;
+#else
+#endif
+  vector<MovePosition> succs=successors(dir, p);
+  if(succs.size()==0){
+    assert(old_value);
+    return false;
+  }
+  bool found_one=false;
+  Value minimum;
+  bool found_unknown=false;
+  for(const MovePosition& s : succs){
+    Value v=table->lookup(s);
+    if(v==0)
+      found_unknown=true;
+    else if(found_one)
+      minimum=min(minimum,v);
+    else {
+      minimum=v;
+      found_one=true;
+    }
+  }
+  if(!found_one){
+    assert(!old_value);
+    return false;
+  }
+  if(minimum>0 and found_unknown){
+    assert(!old_value);
+    return false;
+  } else {
+    backward_the_easy_way(&minimum);
+#ifdef NDEBUG
+    table->set(p,minimum);
+    return true;
+#else
+    if(old_value==0){
+      table->set(p,minimum);
+      return true;
+    } else {
+      assert(old_value == minimum);
+      return false;
+    }
+#endif
+  }
+}
+
+void mark_terminal_nodes(const Directory& dir,Table* table){
+  MovePosition p;
+  for(int player=0;player<1;++player){
+    p.to_move=static_cast<Color>(player);
+    assert(NUM_PIECES==4);
+    for(int i0=0;i0<POSITION_POSSIBILITIES;++i0){
+      p.position[0].from_numeric(i0);
+      for(int i1=0;i1<POSITION_POSSIBILITIES;++i1){
+        p.position[1].from_numeric(i1);
+        for(int i2=0;i2<POSITION_POSSIBILITIES;++i2){
+          p.position[2].from_numeric(i2);
+          for(int i3=0;i3<POSITION_POSSIBILITIES;++i3){
+            p.position[3].from_numeric(i3);
+            // deal with stalemate here XXX
+            if(successors(dir,p).size()==0){
+              table->set(p,LOSS);
+              cout << p << endl;
+            }
+          }}}}}}
 
 int main(int argc, char**argv){
   if(argc<2){
@@ -397,6 +528,17 @@ int main(int argc, char**argv){
     if(argc>2)
       depth=atoi(argv[2]);
     recursive_successors_test(depth,start);
+  } else if(0==strcmp(argv[1],"valuetest")){
+    cout << LOSS << endl;
+    Value i=LOSS, i2=LOSS;
+    for(int j=0;j<163840;++j){  //Mate in 8000
+      cout << j << " "  << i << " " << (i>>1) << " " << i2 << endl;
+      //backward_the_hard_way(&i);
+      backward_the_easy_way(&i2);
+    }
+  } else if(0==strcmp(argv[1],"terminal")){
+    Table egtb;
+    mark_terminal_nodes(test_directory,&egtb);
   }else {
     cerr << "unknown arg" << endl;
   }
