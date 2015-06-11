@@ -25,7 +25,7 @@ stalemate_draw = False;
 -- 43 = 2.5 min
 -- 44 = 16 min
 -- 45 = 55 min
--- 55 = 289 on mkc(?)
+-- 55 = 123 min on mkc(?)
 
 -- test directory
 test_directory :: Directory;
