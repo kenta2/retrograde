@@ -15,18 +15,27 @@ import Control.Exception(assert);
 import Data.Ord;
 import System.Random(randomRIO);
 
-max_row :: Row;
-max_row = Row 3;
-
-max_column :: Column;
-max_column = Column 4;
+my_boardsize :: (Integer,Integer);
+my_boardsize = (4,4);
 
 stalemate_draw :: Bool;
 stalemate_draw = False;
 
+-- no stalemate
+-- 43 = 2.5 min
+-- 44 = 16 min
+-- 45 = 55 min
+-- 55 = 289 on mkc(?)
+
 -- test directory
 test_directory :: Directory;
 test_directory = dir_qr;
+
+max_row :: Row;
+max_row = Row $ pred $ fst my_boardsize;
+
+max_column :: Column;
+max_column = Column $ pred $ snd my_boardsize;;
 
 -- to avoid the redundancy warning
 trace_placeholder :: ();
@@ -659,5 +668,7 @@ print t;
 return ();
 };
 
+table_line :: Entry -> [Integer];
+table_line (mp,v) = position_to_integer mp ++ [c_value v];
 
 } --end

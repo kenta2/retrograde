@@ -98,4 +98,13 @@ return $ snd $ head $ sortOn fst $ zip xs l;
 winlength :: Value -> Value -> Ordering;
 winlength (Value x) (Value y) = compare x y;
 
+max_c_value :: Integer;
+max_c_value = 32767;
+c_value :: Value -> Integer;
+c_value (Value 0) = 1;
+c_value (Value n) = if n<0
+then assert (mod n 2 /= 0) $ negate $ (div (n+1) 2) + max_c_value
+else assert (mod n 2 == 0) $ max_c_value - (div n 2) + 1;
+
+
 } --end

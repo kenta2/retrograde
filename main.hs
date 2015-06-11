@@ -42,6 +42,7 @@ main = do {
 ["allcpp"] -> putStrLn all_pieces_for_cplusplus;
 ["v1"] -> verify_piece_locs;
 ["v2"] -> verify_successors;
+["dump"] -> mapM_ (putStrLn . unwords . map show . table_line) $ concat all_list;
 _ -> error "need args";
 }};
 
