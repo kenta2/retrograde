@@ -11,7 +11,7 @@
 using namespace std;
 
 const int8_t num_rows=4;
-const int8_t num_columns=4;
+const int8_t num_columns=5;
 
 //typedef vector< pair <int8_t,int8_t> > Coords;
 //  dir_orth.push_back(pair<int8_t,int8_t>(0,1));
@@ -344,8 +344,9 @@ vector<MovePosition> successors(const Directory& dir, const MovePosition& mp){
 
 MovePosition gen_qr_test_position(){
   MovePosition answer;
-  const int8_t pos_qr_arr[4][2]={{3,3},{1,0},{2,2},{0,1}};
-  // const int8_t pos_qr_arr[4][2]={{3,3},{1,0},{2,0},{0,1}};
+  const int8_t pos_qr_arr[4][2]={{3,3},{3,1},{3,4},{0,3}};
+  //{{3,3},{1,0},{2,2},{0,1}};
+  //{{3,3},{1,0},{2,0},{0,1}};
   answer.to_move=White;
   for(int i=0;i<4;++i){
     answer.position[i].alive=true;

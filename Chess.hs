@@ -19,7 +19,7 @@ max_row :: Row;
 max_row = Row 3;
 
 max_column :: Column;
-max_column = Column 3;
+max_column = Column 4;
 
 stalemate_draw :: Bool;
 stalemate_draw = False;
@@ -78,7 +78,8 @@ td = test_directory;
 
 test_position :: MovePosition;
 test_position = (listArray (Piecenum 0, Piecenum 3) $ map (\(x,y) -> Just $ Location (Row x, Column y))
-[(3,3),(1,0),(2,0),(0,1)],Black);
+[(3,3),(3,1),(3,4),(0,3)],White);
+--[(3,3),(1,0),(2,0),(0,1)],Black);
 --[(3,3),(1,0),(2,2),(0,1)],White);
 
 dir_experiment :: Directory;
@@ -597,7 +598,7 @@ then Nothing
 else if n > maxsize
 then error "too big location_from_integer"
 else let {
-ans = divMod n num_rows;
+ans = divMod n num_columns;
 } in Just $ Location (Row $ fst ans, Column $ snd ans);
 
 read_moveposition :: [Integer] -> MovePosition;
