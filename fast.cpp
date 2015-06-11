@@ -12,7 +12,10 @@ using namespace std;
 
 const int8_t num_rows=4;
 const int8_t num_columns=5;
-const int8_t POSITION_POSSIBILITIES=1+num_rows*num_columns; // and piece is nowhere
+//larger board sizes need to ulimit -s
+const int8_t ACTUAL_SIZE=num_rows*num_columns;
+const int8_t POSITION_POSSIBILITIES=ACTUAL_SIZE+1; // or piece is nowhere
+
 
 //typedef vector< pair <int8_t,int8_t> > Coords;
 //  dir_orth.push_back(pair<int8_t,int8_t>(0,1));
@@ -346,8 +349,11 @@ inline bool has_king(const Directory& dir, const MovePosition& mp){
 
 void fill_board(Bitboard *board, const Directory& dir, const Position& pos){
   for(int i=0;i<NUM_PIECES;++i)
-    if(pos[i].alive)
-      board->b[pos[i].get().first][pos[i].get().second]=1|(dir[i].color<<1)|(i<<2);
+    if(pos[i].alive){
+      Coord xy=pos[i].get();
+      assert(board->b[xy.first][xy.second]==0);
+      board->b[xy.first][xy.second]=1|(dir[i].color<<1)|(i<<2);
+    }
 }
 
 Color other(Color x){
@@ -423,7 +429,7 @@ void backward_the_hard_way(Value* v){
 
 void backward_the_easy_way(Value *v){
   assert(*v);
-  assert((*v)!=DRAW);
+  if ((*v)==DRAW) return;
   if((*v)<0)
     (*v)=-(*v);
   else
@@ -431,15 +437,17 @@ void backward_the_easy_way(Value *v){
   // but -1 allows mate in 32000
 }
 
-bool update_table(const Directory& dir, Table* table, const MovePosition& p){
+bool update_table_entry(const Directory& dir, Table* table, const MovePosition& p){
   Value old_value=table->lookup(p);
 #ifdef NDEBUG
   if(old_value)return false;
 #else
+  if(old_value==LOSS) return false;
+  //also need to avoid going beyond stalemate XXX
 #endif
   vector<MovePosition> succs=successors(dir, p);
   if(succs.size()==0){
-    assert(old_value);
+    assert(old_value);  // loss or stalemate
     return false;
   }
   bool found_one=false;
@@ -465,6 +473,7 @@ bool update_table(const Directory& dir, Table* table, const MovePosition& p){
     return false;
   } else {
     backward_the_easy_way(&minimum);
+    assert(minimum != LOSS);
 #ifdef NDEBUG
     table->set(p,minimum);
     return true;
@@ -480,25 +489,70 @@ bool update_table(const Directory& dir, Table* table, const MovePosition& p){
   }
 }
 
+#define forR(v) for(int v=0;v<POSITION_POSSIBILITIES;++v)
+#define setpos(n) p.position[n].from_numeric(i##n)
+#define distinct(a,b) (i##a==ACTUAL_SIZE || i##b==ACTUAL_SIZE || i##a!=i##b)
+
 void mark_terminal_nodes(const Directory& dir,Table* table){
+  unsigned long total=0;
+  unsigned long numterminal=0;
   MovePosition p;
-  for(int player=0;player<1;++player){
+  for(int player=0;player<=1;++player){
     p.to_move=static_cast<Color>(player);
     assert(NUM_PIECES==4);
-    for(int i0=0;i0<POSITION_POSSIBILITIES;++i0){
-      p.position[0].from_numeric(i0);
-      for(int i1=0;i1<POSITION_POSSIBILITIES;++i1){
-        p.position[1].from_numeric(i1);
-        for(int i2=0;i2<POSITION_POSSIBILITIES;++i2){
-          p.position[2].from_numeric(i2);
-          for(int i3=0;i3<POSITION_POSSIBILITIES;++i3){
-            p.position[3].from_numeric(i3);
-            // deal with stalemate here XXX
-            if(successors(dir,p).size()==0){
-              table->set(p,LOSS);
-              cout << p << endl;
+    forR(i0) {
+      setpos(0);
+      forR(i1)
+        if(distinct(1,0)){
+          setpos(1);
+          forR(i2)
+            if(distinct(2,0) && distinct (2,1)){
+              setpos(2);
+              forR(i3)
+                if(distinct(3,0) && distinct(3,1) && distinct(3,2)){
+                  setpos(3);
+                  ++total;
+                  assert(table->lookup(p)==0);
+                  // deal with stalemate here XXX
+                  if(successors(dir,p).size()==0){
+                    table->set(p,LOSS);
+                    numterminal++;
+                    //cout << p << endl;
+                  }
+                }
             }
-          }}}}}}
+        }
+    }
+  }
+  cout << "mark_terminal_nodes " << numterminal << " " << total << endl;
+}
+
+int update_table(const Directory& dir, Table* table){
+  int improved=0;
+  MovePosition p;
+  for(int player=0;player<=1;++player){
+    p.to_move=static_cast<Color>(player);
+    assert(NUM_PIECES==4);
+    forR(i0) {
+      setpos(0);
+      forR(i1)
+        if(distinct(1,0)){
+          setpos(1);
+          forR(i2)
+            if(distinct(2,0) && distinct (2,1)){
+              setpos(2);
+              forR(i3)
+                if(distinct(3,0) && distinct(3,1) && distinct(3,2)){
+                  setpos(3);
+                  bool code = update_table_entry(dir,table,p);
+                  improved+=code;
+                }
+            }
+        }
+    }
+  }
+  return improved;
+}
 
 int main(int argc, char**argv){
   if(argc<2){
@@ -539,6 +593,16 @@ int main(int argc, char**argv){
   } else if(0==strcmp(argv[1],"terminal")){
     Table egtb;
     mark_terminal_nodes(test_directory,&egtb);
+  } else if(0==strcmp(argv[1],"go")){
+    Table egtb;
+    mark_terminal_nodes(test_directory,&egtb);
+    int how_many_updated;
+    int running_sum=0;
+    while((how_many_updated=update_table(test_directory,&egtb))){
+      running_sum+=how_many_updated;
+      cout << how_many_updated << endl;
+    }
+    cout << "running_sum " << running_sum << endl;
   }else {
     cerr << "unknown arg" << endl;
   }
