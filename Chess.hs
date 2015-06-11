@@ -278,12 +278,17 @@ all_positions dir = do {
 
 -- entries in which the value is known without analysis
 final_entries :: Directory -> [(MovePosition,Value)];
-final_entries dir = do {
- mp <- -- (\x -> trace ("all_positions " ++ (show $ length x)) x) $
-    all_positions dir;
- guard $ not $ has_king dir mp;
- return (mp, loss);
-} ++ if stalemate_draw then stalemates dir else [];
+final_entries dir = losses (kingless dir)
+++ if stalemate_draw then stalemates dir
+else losses (locked_with_king dir);
+
+losses :: [MovePosition] -> [(MovePosition,Value)];
+losses = map (\a -> (a,loss));
+
+kingless :: Directory -> [MovePosition];
+kingless dir = filter (not . has_king dir) $ all_positions dir ;
+locked_with_king :: Directory -> [MovePosition];
+locked_with_king dir = filter (\p -> has_king dir p && (null $ successors dir p)) $ all_positions dir;
 
 value_via_successors :: Directory -> MovePosition -> [(MovePosition,Value)] -> Maybe Value;
 value_via_successors dir mp@(_,color) succs = let {
