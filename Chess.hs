@@ -16,7 +16,7 @@ import Data.Ord;
 import System.Random(randomRIO);
 
 my_boardsize :: (Integer,Integer);
-my_boardsize = (4,4);
+my_boardsize = (4,3);  -- col row
 
 stalemate_draw :: Bool;
 stalemate_draw = False;
@@ -32,16 +32,16 @@ test_directory :: Directory;
 test_directory = dir_qr;
 
 max_row :: Row;
-max_row = Row $ pred $ fst my_boardsize;
+max_row = Row $ pred $ snd my_boardsize;
 
 max_column :: Column;
-max_column = Column $ pred $ snd my_boardsize;;
+max_column = Column $ pred $ fst my_boardsize;;
 
 -- to avoid the redundancy warning
 trace_placeholder :: ();
 trace_placeholder = trace "trace" ();
 
-type Offset = (Row,Column);
+type Offset = (Column,Row);
 newtype Row = Row Integer deriving (Eq, Ord, Enum, Ix, Show);
 newtype Column = Column Integer deriving (Eq, Ord, Enum, Ix, Show);
 
@@ -86,8 +86,9 @@ td :: Directory;
 td = test_directory;
 
 test_position :: MovePosition;
-test_position = (listArray (Piecenum 0, Piecenum 3) $ map (\(x,y) -> Just $ Location (Row x, Column y))
-[(3,3),(3,1),(3,4),(0,3)],White);
+test_position = (listArray (Piecenum 0, Piecenum 3) $ map (\(x,y) -> Just $ Location (Column x, Row y))
+[(3,2),(2,0),(1,2),(1,1)],White);
+--[(3,3),(3,1),(3,4),(0,3)],White);
 --[(3,3),(1,0),(2,0),(0,1)],Black);
 --[(3,3),(1,0),(2,2),(0,1)],White);
 
@@ -135,12 +136,12 @@ return $ r $ q $ p $ z;
 };
 
 eightway :: IOffset -> [Offset];
-eightway = map (\z -> (Row $ fst z, Column $ snd z)) . nub . eightway_with_duplicates;
+eightway = map (\z -> (Column $ fst z, Row $ snd z)) . nub . eightway_with_duplicates;
 
 extend :: Offset -> [Offset];
-extend (Row x,Column y) = do {
+extend (Column x,Row y) = do {
 s <- enumFromTo 1 $ unBoardsize board_max;
-return (Row $ s*x,Column $ s*y);
+return (Column $ s*x,Row $ s*y);
 };
 
 board_max :: Boardsize;
@@ -193,7 +194,7 @@ dabbabamoves Dabbaba_single me _ = map (add_offset me) $ eightway (2,0);
 dabbabamoves Dabbaba_rider me pos = concatMap (extendUntilOccupied me pos) $ eightway (2,0);
 
 board_bounds :: (Location,Location);
-board_bounds = (Location (Row 0,Column 0),Location (max_row, max_column));
+board_bounds = (Location (Column 0,Row 0),Location (max_column, max_row));
 
 empty :: Position -> Location -> Bool;
 empty p l = inRange board_bounds l
@@ -202,7 +203,7 @@ empty p l = inRange board_bounds l
 type Directory = Array Piecenum Piece;
 
 add_offset :: Location -> Offset -> Location;
-add_offset (Location (ox,oy)) (dx,dy) = Location (row_add ox dx,column_add oy dy);
+add_offset (Location (ox,oy)) (dx,dy) = Location (column_add ox dx,row_add oy dy);
 
 row_add :: Row -> Row -> Row;
 row_add (Row x) (Row y) = Row $ x+y;
@@ -393,7 +394,7 @@ show_board_f ::(Piecenum -> String) -> Position -> String;
 show_board_f f pos = unlines $ do { rank <- reverse $ enumFromTo (Row 0) max_row;
 return $ unwords $ do {
 file <- enumFromTo (Column 0) max_column;
-return $ case at_location pos $ Location (rank, file) of {
+return $ case at_location pos $ Location (file, rank) of {
 Nothing -> "-";
 Just num -> f num;
 }}
@@ -586,7 +587,7 @@ return (p,l,moves_on_empty_board p l);
 
 take2 :: [Integer] -> [Offset];
 take2 [] = [];
-take2 (x:y:rest) = (Row x, Column y): take2 rest;
+take2 (x:y:rest) = (Column x, Row y): take2 rest;
 take2 _ = error "odd number for take2";
 
 verify_piece_locs :: IO ();
@@ -612,8 +613,8 @@ then Nothing
 else if n > maxsize
 then error "too big location_from_integer"
 else let {
-ans = divMod n num_columns;
-} in Just $ Location (Row $ fst ans, Column $ snd ans);
+ans = divMod n num_rows;
+} in Just $ Location (Column $ fst ans, Row $ snd ans);
 
 read_moveposition :: [Integer] -> MovePosition;
 read_moveposition l = (listArray (bounds test_directory) $ map location_from_integer $ tail l,
@@ -645,7 +646,7 @@ case (max_row, max_column) of
 maxsize = num_rows * num_columns
 } in case l of {
 Nothing -> maxsize;
-Just (Location (Row r, Column c)) -> r*num_columns +c;
+Just (Location (Column c, Row r)) -> c*num_rows +r;
 };
 
 position_to_integer :: MovePosition -> [Integer];

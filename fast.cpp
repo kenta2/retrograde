@@ -10,8 +10,8 @@
 
 using namespace std;
 
-const int8_t num_rows=4;
 const int8_t num_columns=4;
+const int8_t num_rows=3;
 //larger board sizes need to ulimit -s
 const int8_t ACTUAL_SIZE=num_rows*num_columns;
 const int8_t POSITION_POSSIBILITIES=ACTUAL_SIZE+1; // or piece is nowhere
@@ -45,7 +45,7 @@ enum Color { White, Black};
 
 class Bitboard{
 public:
-  uint8_t b[num_rows][num_columns];
+  uint8_t b[num_columns][num_rows];
 
   Bitboard() : b {0}
   {}
@@ -63,8 +63,7 @@ public:
 ostream& operator<<(ostream& os, const Bitboard& b){
   for(int i=num_rows-1;i>=0;--i){
     for(int j=0;j<num_columns;++j){
-      //os << setw(4) << hex << static_cast<int>(b.b[i][j]);
-      os << setw(4) << static_cast<int>(b.index(Coord(i,j)));
+      os << setw(4) << static_cast<int>(b.index(Coord(j,i)));
     }
     os << endl << dec;
   }
@@ -76,8 +75,8 @@ inline Coord add_coord(const Coord& a, const Coord& b){
 }
 
 inline bool in_bounds(const Coord& p){
-  return (p.first>=0)&&(p.first<num_rows)&&
-    (p.second>=0)&&(p.second<num_columns);
+  return (p.first>=0)&&(p.first<num_columns)&&
+    (p.second>=0)&&(p.second<num_rows);
 }
 
 inline bool duplicate_entry(const vector<Coord>& v, const Coord& target){
@@ -238,12 +237,12 @@ vector<Piece> all_pieces{
 
 void printlocs(const Piece& p){
   Bitboard b;
-  for(int8_t i=0;i<num_rows;++i)
-    for(int8_t j=0;j<num_columns;++j){
+  for(int8_t i=0;i<num_columns;++i)
+    for(int8_t j=0;j<num_rows;++j){
       assert(!b.occupied(Coord(i,j)));
     }
-  for(int8_t i=0;i<num_rows;++i)
-    for(int8_t j=0;j<num_columns;++j){
+  for(int8_t i=0;i<num_columns;++i)
+    for(int8_t j=0;j<num_rows;++j){
       vector<Coord> v = p.moves(Coord(i,j),b,0);
       //for_each(v.begin(), v.end(), [](Coord& c){}); //lambda function
       for(const Coord& c : v)
@@ -267,7 +266,7 @@ public:
   int to_numeric() const {
     if(alive){
       assert(in_bounds(l));
-      return static_cast<int>(l.first)*num_columns+l.second;
+      return static_cast<int>(l.first)*num_rows+l.second;
     }else
       return static_cast<int>(num_rows)*num_columns;
   }
@@ -276,8 +275,8 @@ public:
       alive=false;
     else {
       alive=true;
-      l.second=input%num_columns;
-      l.first=input/num_columns;
+      l.second=input%num_rows;
+      l.first=input/num_rows;
     }
   }
 };
@@ -397,9 +396,9 @@ vector<MovePosition> successors(const Directory& dir, const MovePosition& mp){
 
 MovePosition gen_qr_test_position(){
   MovePosition answer;
-  const int8_t pos_qr_arr[4][2]={{3,3},{3,1},{3,4},{0,3}};
-  //{{3,3},{1,0},{2,2},{0,1}};
-  //{{3,3},{1,0},{2,0},{0,1}};
+  const int8_t pos_qr_arr[4][2]=
+    //{{3,2},{2,0},{1,2},{1,1}};  //longest(4,3)
+    {{0,0},{0,1},{1,0},{1,1}};
   answer.to_move=White;
   for(int i=0;i<4;++i){
     answer.position[i].alive=true;
