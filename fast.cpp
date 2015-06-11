@@ -11,7 +11,7 @@
 using namespace std;
 
 const int8_t num_rows=4;
-const int8_t num_columns=5;
+const int8_t num_columns=4;
 //larger board sizes need to ulimit -s
 const int8_t ACTUAL_SIZE=num_rows*num_columns;
 const int8_t POSITION_POSSIBILITIES=ACTUAL_SIZE+1; // or piece is nowhere
@@ -310,6 +310,13 @@ public:
   Position position;
 };
 
+ostream& operator<<(ostream& os, const MovePosition& object){
+  os << static_cast<int>(object.to_move);
+  for(int i=0;i<NUM_PIECES;++i)
+  os << " " << object.position[i];
+  return os;
+}
+
 typedef int16_t Value;
 
 class Table {
@@ -318,6 +325,7 @@ class Table {
 public:
   Table() : table {{{{{0}}}}} // 0 = unknown
   {}
+  friend ostream& operator<<(ostream& os, const Table& table);
 #define INDEX table[static_cast<int>(p.to_move)] \
       [p.position[0].to_numeric()] \
       [p.position[1].to_numeric()] \
@@ -332,13 +340,16 @@ public:
   }
 };
 
-
-ostream& operator<<(ostream& os, const MovePosition& object){
-  os << static_cast<int>(object.to_move);
-  for(int i=0;i<NUM_PIECES;++i)
-  os << " " << object.position[i];
+#define forR(v) for(int v=0;v<POSITION_POSSIBILITIES;++v)
+ostream& operator<<(ostream& os, const Table& table){
+  for(int player=0;player<=1;++player){
+    forR(i0)forR(i1)forR(i2)forR(i3){
+      os << player << " " << i0 << " " << i1 << " " << i2 << " " << i3 << " " << table.table[player][i0][i1][i2][i3] << endl;
+    }
+  }
   return os;
 }
+
 
 inline bool has_king(const Directory& dir, const MovePosition& mp){
   for(int i=0;i<NUM_PIECES;++i)
@@ -489,7 +500,6 @@ bool update_table_entry(const Directory& dir, Table* table, const MovePosition& 
   }
 }
 
-#define forR(v) for(int v=0;v<POSITION_POSSIBILITIES;++v)
 #define setpos(n) p.position[n].from_numeric(i##n)
 #define distinct(a,b) (i##a==ACTUAL_SIZE || i##b==ACTUAL_SIZE || i##a!=i##b)
 
@@ -600,9 +610,10 @@ int main(int argc, char**argv){
     int running_sum=0;
     while((how_many_updated=update_table(test_directory,&egtb))){
       running_sum+=how_many_updated;
-      cout << how_many_updated << endl;
+      //cout << how_many_updated << endl;
     }
-    cout << "running_sum " << running_sum << endl;
+    cout << "#running_sum " << running_sum << endl;
+    cout << egtb;
   }else {
     cerr << "unknown arg" << endl;
   }
