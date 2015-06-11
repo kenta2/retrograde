@@ -344,7 +344,9 @@ public:
 ostream& operator<<(ostream& os, const Table& table){
   for(int player=0;player<=1;++player){
     forR(i0)forR(i1)forR(i2)forR(i3){
-      os << player << " " << i0 << " " << i1 << " " << i2 << " " << i3 << " " << table.table[player][i0][i1][i2][i3] << endl;
+      Value v=table.table[player][i0][i1][i2][i3];
+      if(v)
+        os << player << " " << i0 << " " << i1 << " " << i2 << " " << i3 << " " << v << endl;
     }
   }
   return os;
@@ -503,7 +505,7 @@ bool update_table_entry(const Directory& dir, Table* table, const MovePosition& 
 #define setpos(n) p.position[n].from_numeric(i##n)
 #define distinct(a,b) (i##a==ACTUAL_SIZE || i##b==ACTUAL_SIZE || i##a!=i##b)
 
-void mark_terminal_nodes(const Directory& dir,Table* table){
+unsigned long mark_terminal_nodes(const Directory& dir,Table* table){
   unsigned long total=0;
   unsigned long numterminal=0;
   MovePosition p;
@@ -534,11 +536,12 @@ void mark_terminal_nodes(const Directory& dir,Table* table){
         }
     }
   }
-  cout << "mark_terminal_nodes " << numterminal << " " << total << endl;
+  cout << "#mark_terminal_nodes " << numterminal << " " << total << endl;
+  return numterminal;
 }
 
-int update_table(const Directory& dir, Table* table){
-  int improved=0;
+unsigned long update_table(const Directory& dir, Table* table){
+  unsigned long improved=0;
   MovePosition p;
   for(int player=0;player<=1;++player){
     p.to_move=static_cast<Color>(player);
@@ -605,9 +608,8 @@ int main(int argc, char**argv){
     mark_terminal_nodes(test_directory,&egtb);
   } else if(0==strcmp(argv[1],"go")){
     Table egtb;
-    mark_terminal_nodes(test_directory,&egtb);
-    int how_many_updated;
-    int running_sum=0;
+    unsigned long running_sum=mark_terminal_nodes(test_directory,&egtb);
+    unsigned long how_many_updated;
     while((how_many_updated=update_table(test_directory,&egtb))){
       running_sum+=how_many_updated;
       //cout << how_many_updated << endl;
