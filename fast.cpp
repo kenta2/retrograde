@@ -16,10 +16,6 @@ const int8_t num_rows=5;
 const int8_t ACTUAL_SIZE=num_rows*num_columns;
 const int8_t POSITION_POSSIBILITIES=ACTUAL_SIZE+1; // or piece is nowhere
 
-
-//typedef vector< pair <int8_t,int8_t> > Coords;
-//  dir_orth.push_back(pair<int8_t,int8_t>(0,1));
-
 typedef pair <int8_t,int8_t> Coord;
 
 ostream& operator<<(ostream &os, const Coord& c){
@@ -423,21 +419,6 @@ void recursive_successors_test(int depth, const MovePosition& start){
 
 const Value LOSS = static_cast<Value>(0x8001);
 const Value DRAW = 1;
-
-/*
-void backward_the_hard_way(Value* v){
-  assert(*v);
-  *v >>= 1;
-  assert(*v);
-  if ((*v)<0)
-    (*v)++;
-  else
-    (*v)--;
-  (*v)=-(*v);
-  (*v)<<=1;
-  (*v)|=1;
-}
-*/
 
 void backward_the_easy_way(Value *v){
   assert(*v);
