@@ -10,8 +10,8 @@
 
 using namespace std;
 
-const int8_t num_columns=4;
-const int8_t num_rows=3;
+const int8_t num_columns=5;
+const int8_t num_rows=5;
 //larger board sizes need to ulimit -s
 const int8_t ACTUAL_SIZE=num_rows*num_columns;
 const int8_t POSITION_POSSIBILITIES=ACTUAL_SIZE+1; // or piece is nowhere
