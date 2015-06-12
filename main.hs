@@ -35,6 +35,17 @@ main :: IO();
 -- 3 = 562464
 -- 4 = 62432010
 
+-- main = three_pieces_length_check;
+
+-- main = getArgs >>= try_three_pieces . read . head;
+{-main = do {
+ hSetBuffering stdout LineBuffering;
+ putStrLn "start";
+ -- rand_three_pieces;
+ -- print $ length $ three_pieces();
+ getArgs >>= try_three_pieces . read . head;
+};-}
+
 main = do {
  hSetBuffering stdout LineBuffering;
  putStrLn $ "#my_boardsize " ++ show my_boardsize;
@@ -50,14 +61,4 @@ main = do {
 _ -> error "need args";
 }};
 
--- main = three_pieces_length_check;
-
--- main = getArgs >>= try_three_pieces . read . head;
-{-main = do {
- hSetBuffering stdout LineBuffering;
- putStrLn "start";
- -- rand_three_pieces;
- -- print $ length $ three_pieces();
- getArgs >>= try_three_pieces . read . head;
-};-}
 }

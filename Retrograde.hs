@@ -106,5 +106,10 @@ c_value (Value n) = if n<0
 then assert (mod n 2 /= 0) $ negate $ (div (n+1) 2) + max_c_value
 else assert (mod n 2 == 0) $ max_c_value - (div n 2) + 1;
 
+read_c_value :: Integer -> Value;
+read_c_value 1 = Value 0;
+read_c_value n = Value $ if n<0
+then ((negate n) - max_c_value)*2-1
+else 2*(max_c_value - n + 1);
 
 } --end

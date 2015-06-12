@@ -19,7 +19,7 @@ my_boardsize :: (Integer,Integer);
 my_boardsize = (4,4);  -- col row
 
 stalemate_draw :: Bool;
-stalemate_draw = False;
+stalemate_draw = True;
 
 pass_permitted :: Bool;
 pass_permitted = True;
@@ -433,6 +433,11 @@ illegal_position dir mp = assert (has_king dir $ do_pass mp) $
 do_pass :: MovePosition -> MovePosition;
 do_pass (pos,color) = (pos, other color);
 
+-- Note: this method of discovering stalemates does not work, i.e.,
+-- never stalemate, if passing is permitted.  I feel this logically
+-- makes sense, though it would alternatively be possible to
+-- special-case stalemate as a position in which one can instantly
+-- claim a draw even if passing is permitted.
 no_legal_moves :: Directory -> MovePosition -> Bool;
 no_legal_moves dir = null . filter (not . illegal_position dir) . successors dir;
 
@@ -497,13 +502,13 @@ return (s,fromJust nv)}} in do_trace dir m next;
 Nothing -> error "do_trace"
 };
 
-longest_win :: Entry;
-longest_win = maximumBy (\x y -> winlength (snd x) (snd y)) $ Map.toList allmap;
+longest_win :: [Entry] -> Entry;
+longest_win = maximumBy (\x y -> winlength (snd x) (snd y));
 
 show_longest :: IO();
 show_longest = do {
 eval_iterate;
-mapM_ (putStrLn . show_entry test_directory)  $ do_trace test_directory allmap longest_win;
+mapM_ (putStrLn . show_entry test_directory)  $ do_trace test_directory allmap $ longest_win $ concat all_list;
 };
 
 integers_from_zero :: [Integer];
@@ -689,5 +694,19 @@ return ();
 
 table_line :: Entry -> [Integer];
 table_line (mp,v) = position_to_integer mp ++ [c_value v];
+
+read_table_line :: [Integer] -> Entry;
+read_table_line is = (read_moveposition $ init is, read_c_value $ last is);
+
+read_dump_from_file :: String -> IO [Entry];
+read_dump_from_file fn = readFile fn >>= return . (map (read_table_line . map read . words)) . filter (not . is_comment) .  lines;
+
+is_comment :: String -> Bool;
+is_comment [] = False;
+is_comment ('#':_) = True;
+is_comment _ = False;
+
+zip_map :: (a -> b) -> [a] -> [(a,b)];
+zip_map f l = zip l $ map f l;
 
 } --end
