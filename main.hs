@@ -37,12 +37,16 @@ main :: IO();
 
 main = do {
  hSetBuffering stdout LineBuffering;
+ putStrLn $ "#my_boardsize " ++ show my_boardsize;
+ putStrLn $ "#pass_permitted " ++ show pass_permitted;
+ putStrLn $ "#stalemate is draw " ++ show stalemate_draw;
  getArgs >>= \case {
 ["longest"] -> show_longest;
 ["allcpp"] -> putStrLn all_pieces_for_cplusplus;
 ["v1"] -> verify_piece_locs;
 ["v2"] -> verify_successors;
 ["dump"] -> mapM_ (putStrLn . unwords . map show . table_line) $ concat all_list;
+["testretro"] -> print $ and $ map (test_retro2 test_directory) $ all_positions test_directory;
 _ -> error "need args";
 }};
 

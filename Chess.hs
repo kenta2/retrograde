@@ -16,10 +16,13 @@ import Data.Ord;
 import System.Random(randomRIO);
 
 my_boardsize :: (Integer,Integer);
-my_boardsize = (4,3);  -- col row
+my_boardsize = (4,4);  -- col row
 
 stalemate_draw :: Bool;
 stalemate_draw = False;
+
+pass_permitted :: Bool;
+pass_permitted = True;
 
 -- no stalemate
 -- 43 = 2.5 min
@@ -29,7 +32,7 @@ stalemate_draw = False;
 
 -- test directory
 test_directory :: Directory;
-test_directory = dir_qr;
+test_directory = dir_nn;
 
 max_row :: Row;
 max_row = Row $ pred $ snd my_boardsize;
@@ -104,10 +107,16 @@ dir_bn = listArray (Piecenum 0, Piecenum 3) [king White, king Black
 , knight White
 ];
 
+dir_nn :: Directory;
+dir_nn = listArray (Piecenum 0, Piecenum 3) [king White, king Black
+, knight White
+, knight White
+];
+
 dir_bb :: Directory;
 dir_bb = listArray (Piecenum 0, Piecenum 3) [king White, king Black
-, Piece Commoner NoOrthogonal Bishop NoKnight NoAlfil NoDabbaba White
-, Piece Commoner NoOrthogonal Bishop NoKnight NoAlfil NoDabbaba White
+, bishop White
+, bishop White
 ];
 
 dir_qr :: Directory;
@@ -256,7 +265,7 @@ has_king dir (position,color) = any (\(ml, p) -> isJust ml && is_royal p && get_
 $ zip (elems position) (elems dir);
 
 retrograde_positions :: Directory -> MovePosition -> [MovePosition];
-retrograde_positions dir (pos, color) = do {
+retrograde_positions dir mp@(pos, color) = do {
  (i :: Piecenum , p :: Piece) <- assocs dir;
  guard $ other color == get_color p;
  new_loc <- moves dir pos i;
@@ -273,6 +282,11 @@ retrograde_positions dir (pos, color) = do {
  guard $ has_king dir (pos3, other color);
  -- ^ optimization: other color has a king, possibly uncaptured
  return (pos3, other color);
+} ++ do {
+ guard pass_permitted;
+ let {newpos = do_pass mp};
+ guard $ has_king dir newpos;
+ return newpos;
 };
 
 overlapping :: Eq a => [a] -> Bool;
@@ -307,8 +321,9 @@ value_via_successors dir mp@(_,color) succs = let {
 } in combine_values_greedy $ map ((flip Map.lookup) table) $ map (\(p,c2) -> assert (c2 == other color) $ elems p) $ successors dir mp ;
 
 successors :: Directory -> MovePosition -> [MovePosition];
-successors dir mp@(pos,color) = do {
- guard $ has_king dir mp;
+successors dir mp@(pos,color) = if not $ has_king dir mp
+then []
+else do {
  (i :: Piecenum, p :: Piece) <- assocs dir;
  guard $ color == get_color p;
  new_loc <- moves dir pos i;
@@ -316,7 +331,7 @@ successors dir mp@(pos,color) = do {
 Nothing -> [];
 Just captured -> assert (captured /= i) [(captured, Nothing)]})
 , other color);
-};
+} ++ if pass_permitted then [do_pass mp] else [];
 
 redfn :: Directory -> MovePosition -> [((MovePosition,Value),Epoch)] -> Maybe (MovePosition,Value);
 redfn dir mp esuccs = do {
@@ -407,13 +422,16 @@ show_entry :: Directory -> Entry -> String;
 show_entry dir (mp,val) = show_mp dir mp ++ " " ++ show val;
 
 in_check :: Directory -> MovePosition -> Bool;
-in_check dir mp@(pos,color) = assert (has_king dir mp) $
- illegal_position dir (pos, other color);
+in_check dir mp = assert (has_king dir mp) $
+ illegal_position dir $ do_pass mp;
 
 -- | King can be captured
 illegal_position :: Directory -> MovePosition -> Bool;
-illegal_position dir mp@(pos,color) = assert (has_king dir (pos, other color)) $
+illegal_position dir mp = assert (has_king dir $ do_pass mp) $
  any (not . has_king dir) $ successors dir mp;
+
+do_pass :: MovePosition -> MovePosition;
+do_pass (pos,color) = (pos, other color);
 
 no_legal_moves :: Directory -> MovePosition -> Bool;
 no_legal_moves dir = null . filter (not . illegal_position dir) . successors dir;
