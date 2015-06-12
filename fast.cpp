@@ -1,3 +1,4 @@
+// --std=c++11
 #include <vector>
 #include <utility>
 #include <cstdint>
@@ -31,7 +32,7 @@ Coord dir_knight[]={Coord(1,2),Coord(-1,2),Coord(1,-2),Coord(-1,-2),
 
 enum class Orthogonal {NoOrthogonal, Wazir, Rook};
 enum class Diagonal {NoDiagonal, Ferz, Bishop};
-enum class Dabbaba {NoDabbaba, Dabbaba_single, Dabbaba_rider};
+enum class Dabbaba {NoDabbaba, Single, Rider};
 enum class Knight {NoKnight, YesKnight};
 enum class Alfil {NoAlfil, YesAlfil};
 
@@ -135,14 +136,14 @@ public:
         }
 
     // dabbaba and alfil induce duplicates with rook and bishop
-    if(Dabbaba::Dabbaba_single == dabbaba)
+    if(Dabbaba::Single == dabbaba)
       for(int i=0;i<4;++i){
         Coord pos=Coord(mylocation.first+2*dir_orthogonal[i].first,
                         mylocation.second+2*dir_orthogonal[i].second);
         if(in_bounds(pos) && (!board.occupied(pos) || (board.color_at(pos)!=mycolor)) && (orthogonal != Orthogonal::Rook || !duplicate_entry(answer,pos)))
           answer.push_back(pos);
       }
-    else if(Dabbaba::Dabbaba_rider == dabbaba)
+    else if(Dabbaba::Rider == dabbaba)
       for(int i=0;i<4;++i)
         for(uint8_t s=1;s<board_size_max;++s){
           Coord pos = add_coord(mylocation, Coord(2*s*dir_orthogonal[i].first,2*s*dir_orthogonal[i].second));
@@ -206,10 +207,10 @@ public:
     answer += ", Dabbaba::";
     if(Dabbaba::NoDabbaba == dabbaba)
       answer+="NoDabbaba";
-    else if(Dabbaba::Dabbaba_single == dabbaba)
-      answer+="Dabbaba_single";
-    else if(Dabbaba::Dabbaba_rider == dabbaba)
-      answer+="Dabbaba_rider";
+    else if(Dabbaba::Single == dabbaba)
+      answer+="Single";
+    else if(Dabbaba::Rider == dabbaba)
+      answer+="Rider";
     else assert(0);
     answer+=", ";
     if(0==color)

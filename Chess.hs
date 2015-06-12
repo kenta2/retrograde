@@ -582,7 +582,11 @@ return $ "Piece(Orthogonal::"++show o
            ++", Diagonal::"++show d
            ++", Knight::"++show k
            ++", Alfil::"++show a
-           ++", Dabbaba::"++show da
+           ++", Dabbaba::"++case da of {
+                                      NoDabbaba -> "NoDabbaba";
+                                      Dabbaba_single -> "Single";
+                                      Dabbaba_rider -> "Rider";
+                                    }
            ++", White, true)";
 };
 
