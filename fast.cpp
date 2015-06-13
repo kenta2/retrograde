@@ -13,23 +13,16 @@ using namespace std;
 
 typedef pair <int8_t,int8_t> Coord;
 
-
-
-
-
-// todo: not hardcode board size
-
-
 ostream& operator<<(ostream &os, const Coord& c){
   os << '(' << static_cast<int>(c.first) << ',' << static_cast<int>(c.second) << ')';
   return os;
 }
 
-Coord dir_orthogonal[]={Coord(0,1),Coord(1,0),Coord(-1,0),Coord(0,-1)};
-Coord dir_diagonal[]={Coord(1,1),Coord(1,-1),Coord(-1,1),Coord(-1,-1)};
+const Coord dir_orthogonal[]={Coord(0,1),Coord(1,0),Coord(-1,0),Coord(0,-1)};
+const Coord dir_diagonal[]={Coord(1,1),Coord(1,-1),Coord(-1,1),Coord(-1,-1)};
 
-Coord dir_knight[]={Coord(1,2),Coord(-1,2),Coord(1,-2),Coord(-1,-2),
-                    Coord(2,1),Coord(-2,1),Coord(2,-1),Coord(-2,-1)};
+const Coord dir_knight[]={Coord(1,2),Coord(-1,2),Coord(1,-2),Coord(-1,-2),
+                          Coord(2,1),Coord(-2,1),Coord(2,-1),Coord(-2,-1)};
 
 enum class Orthogonal {NoOrthogonal, Wazir, Rook};
 enum class Diagonal {NoDiagonal, Ferz, Bishop};
@@ -227,7 +220,7 @@ public:
   }
 };
 
-vector<Piece> all_pieces{
+const vector<Piece> all_pieces{
 #include "all_pieces.cpp"
 };
 
@@ -290,14 +283,14 @@ Piece king(Color c){
   return Piece(Orthogonal::Wazir, Diagonal::Ferz, Knight::NoKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, c, true);
 }
 
-Directory dir_qr{king(White),king(Black),
+const Directory dir_qr{king(White),king(Black),
     Piece(Orthogonal::Rook, Diagonal::Bishop, Knight::NoKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, White, false),
     Piece(Orthogonal::Rook, Diagonal::NoDiagonal, Knight::NoKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, Black, false)};
 
-Directory dir_n{king(White),king(Black),
+const Directory dir_n{king(White),king(Black),
     Piece(Orthogonal::NoOrthogonal, Diagonal::NoDiagonal, Knight::YesKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, White, false)};
 
-Directory dir_kmk{king(White),king(Black),
+const Directory dir_kmk{king(White),king(Black),
     Piece(Orthogonal::Wazir, Diagonal::Ferz, Knight::NoKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, White, false)};
 
 
