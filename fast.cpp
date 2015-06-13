@@ -434,13 +434,47 @@ void backward_the_easy_way(Value *v){
   // but -1 allows mate in 32000
 }
 
+bool currently_the_other_player_has_a_king(const Directory& dir, MovePosition mp){
+  mp.to_move=other(mp.to_move);
+  return has_king(dir,mp);
+}
+
+// The player to move can capture the opponent's king / last royal piece.
+bool illegal_position(const Parameters& param, const MovePosition& mp){
+  assert(currently_the_other_player_has_a_king(param.dir,mp));
+  for(const MovePosition& next : successors(param,mp)){
+    if(!has_king(param.dir,next))
+      return true;
+  }
+  return false;
+}
+
+bool in_check(const Parameters& param, MovePosition mp){
+  assert(has_king(param.dir,mp));
+  mp.to_move=other(mp.to_move);
+  return illegal_position(param,mp);
+}
+
+bool no_legal_moves(const Parameters& param , const MovePosition& mp){
+  for(const MovePosition& next: successors(param,mp))
+    if(!illegal_position(param,next))
+      return false;
+  return true;
+}
+
+bool stalemate(const Parameters& param, const MovePosition& mp){
+  if(!has_king(param.dir,mp)) return false;
+  return (!in_check(param,mp)) && no_legal_moves(param,mp);
+}
+
 bool update_table_entry(const Parameters& param, Table* table, const MovePosition& p){
   Value old_value=table->lookup(p);
 #ifdef NDEBUG
   if(old_value)return false;
 #else
   if(old_value==LOSS) return false;
-  //also need to avoid going beyond stalemate XXX
+  if(param.stalemate_draw && old_value==DRAW && stalemate(param,p)) return false;
+
 #endif
   vector<MovePosition> succs=successors(param, p);
   if(succs.size()==0){
@@ -519,39 +553,6 @@ unsigned long update_table(const Parameters& param, Table* table){
   return improved;
 }
 
-bool currently_the_other_player_has_a_king(const Directory& dir, MovePosition mp){
-  mp.to_move=other(mp.to_move);
-  return has_king(dir,mp);
-}
-
-// The player to move can capture the opponent's king / last royal piece.
-bool illegal_position(const Parameters& param, const MovePosition& mp){
-  assert(currently_the_other_player_has_a_king(param.dir,mp));
-  for(const MovePosition& next : successors(param,mp)){
-    if(!has_king(param.dir,next))
-      return true;
-  }
-  return false;
-}
-
-bool in_check(const Parameters& param, MovePosition mp){
-  assert(has_king(param.dir,mp));
-  mp.to_move=other(mp.to_move);
-  return illegal_position(param,mp);
-}
-
-bool no_legal_moves(const Parameters& param , const MovePosition& mp){
-  for(const MovePosition& next: successors(param,mp))
-    if(!illegal_position(param,next))
-      return false;
-  return true;
-}
-
-bool stalemate(const Parameters& param, const MovePosition& mp){
-  if(!has_king(param.dir,mp)) return false;
-  return (!in_check(param,mp)) && no_legal_moves(param,mp);
-}
-
 unsigned long mark_terminal_nodes(const Parameters& param,Table* table){
   unsigned long total=0;
   unsigned long numterminal=0;
@@ -599,7 +600,7 @@ int main(int argc, char**argv){
     return 1;
   }
   Parameters param;
-  param.sizes=Coord(4,3);  //larger board sizes need to ulimit -s
+  param.sizes=Coord(4,3);
   param.dir=dir_kmk;
   param.stalemate_draw=false;
 
@@ -653,7 +654,7 @@ int main(int argc, char**argv){
     unsigned long how_many_updated;
     while((how_many_updated=update_table(param,&egtb))){
       running_sum+=how_many_updated;
-      //cout << how_many_updated << endl;
+      cout << "#how_many_updated " << how_many_updated << endl;
     }
     cout << "#running_sum " << running_sum << endl;
     cout << egtb;
