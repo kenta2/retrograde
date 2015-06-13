@@ -15,7 +15,7 @@ const int8_t num_columns=4;
 const int8_t num_rows=4;
 //larger board sizes need to ulimit -s
 
-const bool stalemate_draw=true;
+const bool stalemate_draw=false;
 const int8_t ACTUAL_SIZE=num_rows*num_columns;
 const int8_t POSITION_POSSIBILITIES=ACTUAL_SIZE+1; // or piece is nowhere
 
@@ -498,20 +498,20 @@ unsigned long update_table(const Directory& dir, Table* table){
     assert(NUM_PIECES==4);
     forR(i0) {
       setpos(0);
-      forR(i1)
-        if(distinct(1,0)){
+      forR(i1) {
+        if(!distinct(1,0)) continue;
           setpos(1);
-          forR(i2)
-            if(distinct(2,0) && distinct (2,1)){
+          forR(i2) {
+            if(!distinct(2,0) || !distinct (2,1)) continue;
               setpos(2);
-              forR(i3)
-                if(distinct(3,0) && distinct(3,1) && distinct(3,2)){
-                  setpos(3);
-                  bool code = update_table_entry(dir,table,p);
-                  improved+=code;
-                }
-            }
-        }
+              forR(i3){
+                if(!distinct(3,0) || !distinct(3,1) || !distinct(3,2)) continue;
+                setpos(3);
+                bool code = update_table_entry(dir,table,p);
+                improved+=code;
+              }
+          }
+      }
     }
   }
   return improved;
@@ -559,29 +559,29 @@ unsigned long mark_terminal_nodes(const Directory& dir,Table* table){
     assert(NUM_PIECES==4);
     forR(i0) {
       setpos(0);
-      forR(i1)
-        if(distinct(1,0)){
-          setpos(1);
-          forR(i2)
-            if(distinct(2,0) && distinct (2,1)){
-              setpos(2);
-              forR(i3)
-                if(distinct(3,0) && distinct(3,1) && distinct(3,2)){
-                  setpos(3);
-                  ++total;
-                  assert(table->lookup(p)==0);
+      forR(i1){
+        if(!distinct(1,0)) continue;
+        setpos(1);
+        forR(i2){
+          if(!distinct(2,0) || !distinct (2,1)) continue;
+          setpos(2);
+          forR(i3) {
+            if(!distinct(3,0) || !distinct(3,1) || !distinct(3,2)) continue;
+            setpos(3);
+            ++total;
+            assert(table->lookup(p)==0);
 
-                  if(stalemate_draw && stalemate(dir,p)){
-                    table->set(p,DRAW);
-                    numterminal++;
-                  }else if(successors(dir,p).size()==0){
-                    table->set(p,LOSS);
-                    numterminal++;
-                    //cout << p << endl;
-                  }
-                }
+            if(stalemate_draw && stalemate(dir,p)){
+              table->set(p,DRAW);
+              numterminal++;
+            }else if(successors(dir,p).size()==0){
+              table->set(p,LOSS);
+              numterminal++;
+              //cout << p << endl;
             }
+          }
         }
+      }
     }
   }
   cout << "#mark_terminal_nodes " << numterminal << " " << total << endl;
