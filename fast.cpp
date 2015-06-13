@@ -500,17 +500,17 @@ unsigned long update_table(const Directory& dir, Table* table){
       setpos(0);
       forR(i1) {
         if(!distinct(1,0)) continue;
-          setpos(1);
-          forR(i2) {
-            if(!distinct(2,0) || !distinct (2,1)) continue;
-              setpos(2);
-              forR(i3){
-                if(!distinct(3,0) || !distinct(3,1) || !distinct(3,2)) continue;
-                setpos(3);
-                bool code = update_table_entry(dir,table,p);
-                improved+=code;
-              }
+        setpos(1);
+        forR(i2) {
+          if(!distinct(2,0) || !distinct (2,1)) continue;
+          setpos(2);
+          forR(i3){
+            if(!distinct(3,0) || !distinct(3,1) || !distinct(3,2)) continue;
+            setpos(3);
+            bool code = update_table_entry(dir,table,p);
+            improved+=code;
           }
+        }
       }
     }
   }
