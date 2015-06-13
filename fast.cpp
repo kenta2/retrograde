@@ -302,7 +302,7 @@ Directory dir_qr{king(White),king(Black),
 Directory dir_n{king(White),king(Black),
     Piece(Orthogonal::NoOrthogonal, Diagonal::NoDiagonal, Knight::YesKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, White, false)};
 
-Directory test_directory(dir_n);
+Directory test_directory(dir_qr);
 
 const int MAX_PIECES=4;
 typedef MaybeLocation Position[MAX_PIECES];
@@ -324,9 +324,13 @@ typedef int16_t Value;
 
 class Table {
 // dimensions = 1+MAX_PIECES
-  Value table[2][POSITION_POSSIBILITIES][POSITION_POSSIBILITIES][POSITION_POSSIBILITIES][POSITION_POSSIBILITIES];
+  //Value table[2][POSITION_POSSIBILITIES][POSITION_POSSIBILITIES][POSITION_POSSIBILITIES][POSITION_POSSIBILITIES];
+  vector<vector<vector<vector<vector<Value> > > > > table;
 public:
-  Table() : table {{{{{0}}}}} // 0 = unknown
+  Table(int z) : table(2, vector<vector<vector<vector<Value> > > >
+                      (z, vector<vector<vector<Value> > >
+                      (z, vector<vector<Value> >
+                      (z, vector<Value>(z)))))
   {}
   friend ostream& operator<<(ostream& os, const Table& table);
 #define INDEX table[static_cast<int>(p.to_move)] \
@@ -638,11 +642,11 @@ int main(int argc, char**argv){
       backward_the_easy_way(&i2);
     }
   } else if(0==strcmp(argv[1],"terminal")){
-    Table egtb;
+    Table egtb(POSITION_POSSIBILITIES);
     mark_terminal_nodes(test_directory,&egtb);
     cout << egtb;
   } else if(0==strcmp(argv[1],"go")){
-    Table egtb;
+    Table egtb(POSITION_POSSIBILITIES);
     unsigned long running_sum=mark_terminal_nodes(test_directory,&egtb);
     unsigned long how_many_updated;
     while((how_many_updated=update_table(test_directory,&egtb))){
