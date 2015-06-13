@@ -15,7 +15,7 @@ typedef pair <int8_t,int8_t> Coord;
 
 
 
-const bool stalemate_draw=false;
+
 
 // todo: not hardcode board size
 
@@ -283,6 +283,7 @@ typedef vector<Piece> Directory;
 struct Parameters {
   Coord sizes;
   Directory dir;
+  bool stalemate_draw;
 };
 
 Piece king(Color c){
@@ -582,7 +583,7 @@ unsigned long mark_terminal_nodes(const Parameters& param,Table* table){
             ++total;
             assert(table->lookup(p)==0);
 
-            if(stalemate_draw && stalemate(param,p)){
+            if(param.stalemate_draw && stalemate(param,p)){
               table->set(p,DRAW);
               numterminal++;
             }else if(successors(param,p).size()==0){
@@ -607,12 +608,13 @@ int main(int argc, char**argv){
   Parameters param;
   param.sizes=Coord(4,3);  //larger board sizes need to ulimit -s
   param.dir=dir_kmk;
+  param.stalemate_draw=false;
 
   int8_t ACTUAL_SIZE=param.sizes.first*param.sizes.second;
   int8_t POSITION_POSSIBILITIES=ACTUAL_SIZE+1; // or piece is nowhere
 
   cout << "#size = " << static_cast<int>(param.sizes.first) << " " << static_cast<int>(param.sizes.second) << endl;
-  cout << "#stalemate_draw = " << stalemate_draw << endl;
+  cout << "#stalemate_draw = " << param.stalemate_draw << endl;
   for(const Piece& p : param.dir)
     cout << "#" << p.toString() << endl;
   if(0==strcmp(argv[1],"exit")){
