@@ -19,7 +19,7 @@ my_boardsize :: (Integer,Integer);
 my_boardsize = (4,4);  -- col row
 
 stalemate_draw :: Bool;
-stalemate_draw = True;
+stalemate_draw = False;
 
 pass_permitted :: Bool;
 pass_permitted = False;
@@ -32,7 +32,7 @@ pass_permitted = False;
 
 -- test directory
 test_directory :: Directory;
-test_directory = dir_qr;
+test_directory = dir_n;
 
 max_row :: Row;
 max_row = Row $ pred $ snd my_boardsize;
@@ -112,6 +112,10 @@ dir_nn = listArray (Piecenum 0, Piecenum 3) [king White, king Black
 , knight White
 , knight White
 ];
+
+-- winnable when stalemate==loss
+dir_n :: Directory;
+dir_n = make_dir [king White, king Black , knight White];
 
 dir_bb :: Directory;
 dir_bb = listArray (Piecenum 0, Piecenum 3) [king White, king Black

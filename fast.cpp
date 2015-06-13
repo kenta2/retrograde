@@ -19,7 +19,7 @@ const bool stalemate_draw=false;
 const int8_t ACTUAL_SIZE=num_rows*num_columns;
 const int8_t POSITION_POSSIBILITIES=ACTUAL_SIZE+1; // or piece is nowhere
 
-// todo: not hardcode board size, number of pieces
+// todo: not hardcode board size
 
 typedef pair <int8_t,int8_t> Coord;
 
@@ -299,10 +299,13 @@ Directory dir_qr{king(White),king(Black),
     Piece(Orthogonal::Rook, Diagonal::Bishop, Knight::NoKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, White, false),
     Piece(Orthogonal::Rook, Diagonal::NoDiagonal, Knight::NoKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, Black, false)};
 
-Directory test_directory(dir_qr);
+Directory dir_n{king(White),king(Black),
+    Piece(Orthogonal::NoOrthogonal, Diagonal::NoDiagonal, Knight::YesKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, White, false)};
 
-const int NUM_PIECES=4;
-typedef MaybeLocation Position[NUM_PIECES];
+Directory test_directory(dir_n);
+
+const int MAX_PIECES=4;
+typedef MaybeLocation Position[MAX_PIECES];
 
 class MovePosition {
 public:
@@ -312,7 +315,7 @@ public:
 
 ostream& operator<<(ostream& os, const MovePosition& object){
   os << static_cast<int>(object.to_move);
-  for(int i=0;i<NUM_PIECES;++i)
+  for(int i=0;i<MAX_PIECES;++i)
   os << " " << object.position[i];
   return os;
 }
@@ -320,7 +323,7 @@ ostream& operator<<(ostream& os, const MovePosition& object){
 typedef int16_t Value;
 
 class Table {
-// dimensions = 1+NUM_PIECES
+// dimensions = 1+MAX_PIECES
   Value table[2][POSITION_POSSIBILITIES][POSITION_POSSIBILITIES][POSITION_POSSIBILITIES][POSITION_POSSIBILITIES];
 public:
   Table() : table {{{{{0}}}}} // 0 = unknown
@@ -354,14 +357,14 @@ ostream& operator<<(ostream& os, const Table& table){
 
 
 inline bool has_king(const Directory& dir, const MovePosition& mp){
-  for(int i=0;i<NUM_PIECES;++i)
+  for(unsigned int i=0;i<dir.size();++i)
     if (dir[i].color==mp.to_move && dir[i].is_royal && mp.position[i].alive)
       return true;
   return false;
 }
 
 void fill_board(Bitboard *board, const Directory& dir, const Position& pos){
-  for(int i=0;i<NUM_PIECES;++i)
+  for(unsigned int i=0;i<dir.size();++i)
     if(pos[i].alive){
       Coord xy=pos[i].get();
       assert(board->b[xy.first][xy.second]==0);
@@ -379,7 +382,7 @@ vector<MovePosition> successors(const Directory& dir, const MovePosition& mp){
     return answer;
   Bitboard board;
   fill_board(&board,dir,mp.position);
-  for(int i=0;i<NUM_PIECES;++i){
+  for(unsigned i=0;i<dir.size();++i){
     if(dir[i].color == mp.to_move && mp.position[i].alive){
       for(const Coord& newloc : dir[i].moves(mp.position[i].get(), board, mp.to_move)){
         MovePosition next(mp);
@@ -495,16 +498,18 @@ unsigned long update_table(const Directory& dir, Table* table){
   MovePosition p;
   for(int player=0;player<=1;++player){
     p.to_move=static_cast<Color>(player);
-    assert(NUM_PIECES==4);
     forR(i0) {
       setpos(0);
       forR(i1) {
         if(!distinct(1,0)) continue;
         setpos(1);
         forR(i2) {
+          //assume always at least 2 pieces
+          if (dir.size()<3 && i2!=ACTUAL_SIZE) continue;
           if(!distinct(2,0) || !distinct (2,1)) continue;
           setpos(2);
           forR(i3){
+            if (dir.size()<4 && i3!=ACTUAL_SIZE) continue;
             if(!distinct(3,0) || !distinct(3,1) || !distinct(3,2)) continue;
             setpos(3);
             bool code = update_table_entry(dir,table,p);
@@ -556,16 +561,18 @@ unsigned long mark_terminal_nodes(const Directory& dir,Table* table){
   MovePosition p;
   for(int player=0;player<=1;++player){
     p.to_move=static_cast<Color>(player);
-    assert(NUM_PIECES==4);
     forR(i0) {
       setpos(0);
       forR(i1){
         if(!distinct(1,0)) continue;
         setpos(1);
         forR(i2){
+          //assume always at least 2 pieces
+          if (dir.size()<3 && i2!=ACTUAL_SIZE) continue;
           if(!distinct(2,0) || !distinct (2,1)) continue;
           setpos(2);
           forR(i3) {
+            if (dir.size()<4 && i3!=ACTUAL_SIZE) continue;
             if(!distinct(3,0) || !distinct(3,1) || !distinct(3,2)) continue;
             setpos(3);
             ++total;
@@ -593,7 +600,13 @@ int main(int argc, char**argv){
     cerr << "need args"<< endl;
     return 1;
   }
-  if(0==strcmp(argv[1],"list")){
+  cout << "#size = " << static_cast<int>(num_columns) << " " << static_cast<int>(num_rows) << endl;
+  cout << "#stalemate_draw = " << stalemate_draw << endl;
+  for(const Piece& p : test_directory)
+    cout << "#" << p.toString() << endl;
+  if(0==strcmp(argv[1],"exit")){
+    return 0;
+  } else if (0==strcmp(argv[1],"list")){
     cout << all_pieces.size() << endl;
   } else if (0==strcmp(argv[1],"locs")){
     //for(int p_index=0;p_index<static_cast<int>(sizeof(all_pieces)/sizeof(Piece));++p_index)
