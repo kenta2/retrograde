@@ -350,8 +350,6 @@ ostream& operator<<(ostream& os, const Table& table){
   }
   return os;
 }
-#define forR(v) for(int v=0;v<position_possibilities;++v)
-
 
 inline bool has_king(const Directory& dir, const MovePosition& mp){
   for(unsigned int i=0;i<dir.size();++i)
@@ -520,6 +518,7 @@ bool update_table_entry(const Parameters& param, Table* table, const MovePositio
   }
 }
 
+#define forR(v) for(int v=0;v<position_possibilities;++v)
 #define setpos(n) p.position[n].from_numeric(i##n)
 #define distinct(a,b) (i##a==0 || i##b==0 || i##a!=i##b)
 
@@ -593,6 +592,10 @@ unsigned long mark_terminal_nodes(const Parameters& param,Table* table){
   cout << "#mark_terminal_nodes " << numterminal << " " << total << endl;
   return numterminal;
 }
+
+#undef forR
+#undef setpos
+#undef distinct
 
 int main(int argc, char**argv){
   if(argc<2){
