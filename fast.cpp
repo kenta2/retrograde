@@ -286,8 +286,12 @@ ostream& operator<<(ostream& os, const MaybeLocation& object){
 }
 
 
-
 typedef vector<Piece> Directory;
+
+struct Parameters {
+  Coord sizes;
+  Directory dir;
+};
 
 Piece king(Color c){
   return Piece(Orthogonal::Wazir, Diagonal::Ferz, Knight::NoKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, c, true);
@@ -303,7 +307,6 @@ Directory dir_n{king(White),king(Black),
 Directory dir_kmk{king(White),king(Black),
     Piece(Orthogonal::Wazir, Diagonal::Ferz, Knight::NoKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, White, false)};
 
-Directory test_directory(dir_kmk);
 
 const int MAX_PIECES=4;
 typedef MaybeLocation Position[MAX_PIECES];
@@ -415,17 +418,17 @@ MovePosition gen_qr_test_position(){
   return answer;
 }
 
-void recursive_successors_test(int depth, const MovePosition& start){
+void recursive_successors_test(const Directory& dir, int depth, const MovePosition& start){
   if(depth==0)
     ; //cout << start << endl;
   else {
     cout << "# (depth " << depth << ") " << endl;
     cout << start;
-    for(const MovePosition& p : successors(test_directory, start))
+    for(const MovePosition& p : successors(dir, start))
       cout << " " << p;
     cout << endl;
-    for(const MovePosition& p : successors(test_directory, start))
-      recursive_successors_test(depth-1,p);
+    for(const MovePosition& p : successors(dir, start))
+      recursive_successors_test(dir,depth-1,p);
   }
 }
 
@@ -604,9 +607,13 @@ int main(int argc, char**argv){
     cerr << "need args"<< endl;
     return 1;
   }
+  Parameters param;
+  param.sizes=Coord(4,3);
+  param.dir=dir_kmk;
+
   cout << "#size = " << static_cast<int>(sizes.first) << " " << static_cast<int>(sizes.second) << endl;
   cout << "#stalemate_draw = " << stalemate_draw << endl;
-  for(const Piece& p : test_directory)
+  for(const Piece& p : param.dir)
     cout << "#" << p.toString() << endl;
   if(0==strcmp(argv[1],"exit")){
     return 0;
@@ -632,7 +639,7 @@ int main(int argc, char**argv){
     int depth=1;
     if(argc>2)
       depth=atoi(argv[2]);
-    recursive_successors_test(depth,start);
+    recursive_successors_test(param.dir,depth,start);
   } else if(0==strcmp(argv[1],"valuetest")){
     cout << LOSS << endl;
     Value i=LOSS, i2=LOSS;
@@ -643,13 +650,13 @@ int main(int argc, char**argv){
     }
   } else if(0==strcmp(argv[1],"terminal")){
     Table egtb(POSITION_POSSIBILITIES);
-    mark_terminal_nodes(test_directory,&egtb);
+    mark_terminal_nodes(param.dir,&egtb);
     cout << egtb;
   } else if(0==strcmp(argv[1],"go")){
     Table egtb(POSITION_POSSIBILITIES);
-    unsigned long running_sum=mark_terminal_nodes(test_directory,&egtb);
+    unsigned long running_sum=mark_terminal_nodes(param.dir,&egtb);
     unsigned long how_many_updated;
-    while((how_many_updated=update_table(test_directory,&egtb))){
+    while((how_many_updated=update_table(param.dir,&egtb))){
       running_sum+=how_many_updated;
       //cout << how_many_updated << endl;
     }
