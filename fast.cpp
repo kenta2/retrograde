@@ -11,17 +11,20 @@
 
 using namespace std;
 
-const int8_t num_columns=4;
-const int8_t num_rows=3;
+typedef pair <int8_t,int8_t> Coord;
+
+const int SPECIAL_sizes_first=4; //workaround for not possible for array dimensions
+const int SPECIAL_sizes_second=3;
+const Coord sizes(SPECIAL_sizes_first,SPECIAL_sizes_second);
+
 //larger board sizes need to ulimit -s
 
 const bool stalemate_draw=false;
-const int8_t ACTUAL_SIZE=num_rows*num_columns;
+const int8_t ACTUAL_SIZE=sizes.first*sizes.second;
 const int8_t POSITION_POSSIBILITIES=ACTUAL_SIZE+1; // or piece is nowhere
 
 // todo: not hardcode board size
 
-typedef pair <int8_t,int8_t> Coord;
 
 ostream& operator<<(ostream &os, const Coord& c){
   os << '(' << static_cast<int>(c.first) << ',' << static_cast<int>(c.second) << ')';
@@ -40,13 +43,13 @@ enum class Dabbaba {NoDabbaba, Single, Rider};
 enum class Knight {NoKnight, YesKnight};
 enum class Alfil {NoAlfil, YesAlfil};
 
-const int8_t board_size_max = max(num_rows, num_columns);
+const int8_t board_size_max = max(sizes.first, sizes.second);
 
 enum Color { White, Black};
 
 class Bitboard{
 public:
-  uint8_t b[num_columns][num_rows];
+  uint8_t b[SPECIAL_sizes_first][SPECIAL_sizes_second];
 
   Bitboard() : b {0}
   {}
@@ -62,8 +65,8 @@ public:
 };
 
 ostream& operator<<(ostream& os, const Bitboard& b){
-  for(int i=num_rows-1;i>=0;--i){
-    for(int j=0;j<num_columns;++j){
+  for(int i=sizes.second-1;i>=0;--i){
+    for(int j=0;j<sizes.first;++j){
       os << setw(4) << static_cast<int>(b.index(Coord(j,i)));
     }
     os << endl << dec;
@@ -76,8 +79,8 @@ inline Coord add_coord(const Coord& a, const Coord& b){
 }
 
 inline bool in_bounds(const Coord& p){
-  return (p.first>=0)&&(p.first<num_columns)&&
-    (p.second>=0)&&(p.second<num_rows);
+  return (p.first>=0)&&(p.first<sizes.first)&&
+    (p.second>=0)&&(p.second<sizes.second);
 }
 
 inline bool duplicate_entry(const vector<Coord>& v, const Coord& target){
@@ -238,12 +241,12 @@ vector<Piece> all_pieces{
 
 void printlocs(const Piece& p){
   Bitboard b;
-  for(int8_t i=0;i<num_columns;++i)
-    for(int8_t j=0;j<num_rows;++j){
+  for(int8_t i=0;i<sizes.first;++i)
+    for(int8_t j=0;j<sizes.second;++j){
       assert(!b.occupied(Coord(i,j)));
     }
-  for(int8_t i=0;i<num_columns;++i)
-    for(int8_t j=0;j<num_rows;++j){
+  for(int8_t i=0;i<sizes.first;++i)
+    for(int8_t j=0;j<sizes.second;++j){
       vector<Coord> v = p.moves(Coord(i,j),b,0);
       //for_each(v.begin(), v.end(), [](Coord& c){}); //lambda function
       for(const Coord& c : v)
@@ -253,40 +256,27 @@ void printlocs(const Piece& p){
 }
 
 class MaybeLocation {
-  Coord l;
-  bool is_alive;
+  int value;
 public:
   bool alive() const {
-    return is_alive;
+    return value;
   }
   Coord get() const {
-    assert(is_alive);
-    return l;
+    assert(value);
+    int temp=value-1;
+    return Coord(temp/sizes.second, temp%sizes.second);
   }
-  void set(const Coord& c){
-    //assert(is_alive);
-    is_alive=true;
-    l=c;
+  void set(const Coord& l){
+    value=1+static_cast<int>(l.first)*sizes.second+l.second;
   }
   void kill(){
-    is_alive=false;
+    value=0;
   }
   int to_numeric() const {
-    if(is_alive){
-      assert(in_bounds(l));
-      return 1+static_cast<int>(l.first)*num_rows+l.second;
-    }else
-      return 0;
+    return value;
   }
-  void from_numeric(int input){
-    if(input==0)
-      is_alive=false;
-    else {
-      is_alive=true;
-      input--;
-      l.second=input%num_rows;
-      l.first=input/num_rows;
-    }
+  void from_numeric(const int input){
+    value=input;
   }
 };
 
@@ -614,7 +604,7 @@ int main(int argc, char**argv){
     cerr << "need args"<< endl;
     return 1;
   }
-  cout << "#size = " << static_cast<int>(num_columns) << " " << static_cast<int>(num_rows) << endl;
+  cout << "#size = " << static_cast<int>(sizes.first) << " " << static_cast<int>(sizes.second) << endl;
   cout << "#stalemate_draw = " << stalemate_draw << endl;
   for(const Piece& p : test_directory)
     cout << "#" << p.toString() << endl;
