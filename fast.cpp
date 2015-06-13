@@ -13,13 +13,9 @@ using namespace std;
 
 typedef pair <int8_t,int8_t> Coord;
 
-const Coord sizes(4,3);
 
-//larger board sizes need to ulimit -s
 
 const bool stalemate_draw=false;
-const int8_t ACTUAL_SIZE=sizes.first*sizes.second;
-const int8_t POSITION_POSSIBILITIES=ACTUAL_SIZE+1; // or piece is nowhere
 
 // todo: not hardcode board size
 
@@ -41,17 +37,13 @@ enum class Dabbaba {NoDabbaba, Single, Rider};
 enum class Knight {NoKnight, YesKnight};
 enum class Alfil {NoAlfil, YesAlfil};
 
-const int8_t board_size_max = max(sizes.first, sizes.second);
-
 enum Color { White, Black};
 
-class Bitboard{
-public:
+struct Bitboard{
   vector<vector<uint8_t> > b;
-  const Coord sizes;
   Bitboard(Coord dimensions)
-    : b(dimensions.first, vector<uint8_t>(dimensions.second)),
-      sizes(dimensions)
+    : b(dimensions.first, vector<uint8_t>(dimensions.second))
+
   {}
   bool occupied(const Coord& p) const {
     return b[p.first][p.second];
@@ -65,8 +57,8 @@ public:
 };
 
 ostream& operator<<(ostream& os, const Bitboard& b){
-  for(int i=sizes.second-1;i>=0;--i){
-    for(int j=0;j<sizes.first;++j){
+  for(unsigned i=b.b[0].size()-1;i>=0;--i){
+    for(unsigned j=0;j<b.b[0].size();++j){
       os << setw(4) << static_cast<int>(b.index(Coord(j,i)));
     }
     os << endl << dec;
@@ -78,7 +70,7 @@ inline Coord add_coord(const Coord& a, const Coord& b){
   return Coord(a.first+b.first, a.second+b.second);
 }
 
-inline bool in_bounds(const Coord& p){
+inline bool in_bounds(const Coord& sizes,const Coord& p){
   return (p.first>=0)&&(p.first<sizes.first)&&
     (p.second>=0)&&(p.second<sizes.second);
 }
@@ -99,21 +91,21 @@ public:
   Piece(Orthogonal o, Diagonal d, Knight k, Alfil a, Dabbaba da, Color c, bool roy)
     : orthogonal(o), diagonal(d), knight(k), alfil(a), dabbaba(da), color(c), is_royal(roy)
   {}
-  vector<Coord> moves(const Coord& mylocation, const Bitboard& board, const uint8_t mycolor) const {
+  vector<Coord> moves(const Coord& sizes, const Coord& mylocation, const Bitboard& board, const uint8_t mycolor) const {
     vector<Coord> answer;
 
     if(Orthogonal::Wazir == orthogonal)
       //answer.insert(answer.end(),dir_orth,dir_orth+4);
       for(int i=0;i<4;++i){
         Coord pos=add_coord(mylocation,dir_orthogonal[i]);
-        if(in_bounds(pos) && (!board.occupied(pos) || (board.color_at(pos)!=mycolor)))
+        if(in_bounds(sizes,pos) && (!board.occupied(pos) || (board.color_at(pos)!=mycolor)))
           answer.push_back(pos);
       }
     else if(Orthogonal::Rook == orthogonal)
       for(int i=0;i<4;++i)
-        for(uint8_t s=1;s<board_size_max;++s){
+        for(uint8_t s=1;;++s){
           Coord pos = add_coord(mylocation, Coord(s*dir_orthogonal[i].first,s*dir_orthogonal[i].second));
-          if(!in_bounds(pos)) break;
+          if(!in_bounds(sizes,pos)) break;
           if(board.occupied(pos)){
             if(board.color_at(pos)!=mycolor)
               answer.push_back(pos);
@@ -126,14 +118,14 @@ public:
     if(Diagonal::Ferz == diagonal)
       for(int i=0;i<4;++i){
         Coord pos=add_coord(mylocation,dir_diagonal[i]);
-        if(in_bounds(pos) && (!board.occupied(pos) || (board.color_at(pos)!=mycolor)))
+        if(in_bounds(sizes,pos) && (!board.occupied(pos) || (board.color_at(pos)!=mycolor)))
           answer.push_back(pos);
       }
     else if(Diagonal::Bishop == diagonal)
       for(int i=0;i<4;++i)
-        for(uint8_t s=1;s<board_size_max;++s){
+        for(uint8_t s=1;;++s){
           Coord pos = add_coord(mylocation, Coord(s*dir_diagonal[i].first,s*dir_diagonal[i].second));
-          if(!in_bounds(pos)) break;
+          if(!in_bounds(sizes,pos)) break;
           if(board.occupied(pos)){
             if(board.color_at(pos)!=mycolor)
               answer.push_back(pos);
@@ -147,14 +139,14 @@ public:
       for(int i=0;i<4;++i){
         Coord pos=Coord(mylocation.first+2*dir_orthogonal[i].first,
                         mylocation.second+2*dir_orthogonal[i].second);
-        if(in_bounds(pos) && (!board.occupied(pos) || (board.color_at(pos)!=mycolor)) && (orthogonal != Orthogonal::Rook || !duplicate_entry(answer,pos)))
+        if(in_bounds(sizes,pos) && (!board.occupied(pos) || (board.color_at(pos)!=mycolor)) && (orthogonal != Orthogonal::Rook || !duplicate_entry(answer,pos)))
           answer.push_back(pos);
       }
     else if(Dabbaba::Rider == dabbaba)
       for(int i=0;i<4;++i)
-        for(uint8_t s=1;s<board_size_max;++s){
+        for(uint8_t s=1;;++s){
           Coord pos = add_coord(mylocation, Coord(2*s*dir_orthogonal[i].first,2*s*dir_orthogonal[i].second));
-          if(!in_bounds(pos)) break;
+          if(!in_bounds(sizes,pos)) break;
           if(board.occupied(pos)){
             if(board.color_at(pos)!=mycolor)
               if (orthogonal != Orthogonal::Rook || !duplicate_entry(answer,pos))
@@ -168,7 +160,7 @@ public:
     if(Knight::YesKnight == knight)
       for(int i=0;i<8;++i){
         Coord pos=add_coord(mylocation,dir_knight[i]);
-        if(in_bounds(pos) && (!board.occupied(pos) || (board.color_at(pos)!=mycolor)))
+        if(in_bounds(sizes,pos) && (!board.occupied(pos) || (board.color_at(pos)!=mycolor)))
           answer.push_back(pos);
       }
 
@@ -176,7 +168,7 @@ public:
       for(int i=0;i<4;++i){
         Coord pos=Coord(mylocation.first+2*dir_diagonal[i].first,
                         mylocation.second+2*dir_diagonal[i].second);
-        if(in_bounds(pos) && (!board.occupied(pos) || (board.color_at(pos)!=mycolor)) && (diagonal != Diagonal::Bishop || !duplicate_entry(answer,pos)) )
+        if(in_bounds(sizes,pos) && (!board.occupied(pos) || (board.color_at(pos)!=mycolor)) && (diagonal != Diagonal::Bishop || !duplicate_entry(answer,pos)) )
           answer.push_back(pos);
       }
 
@@ -239,7 +231,7 @@ vector<Piece> all_pieces{
 #include "all_pieces.cpp"
 };
 
-void printlocs(const Piece& p){
+void printlocs(const Coord& sizes,const Piece& p){
   Bitboard b(sizes);
   for(int8_t i=0;i<sizes.first;++i)
     for(int8_t j=0;j<sizes.second;++j){
@@ -247,7 +239,7 @@ void printlocs(const Piece& p){
     }
   for(int8_t i=0;i<sizes.first;++i)
     for(int8_t j=0;j<sizes.second;++j){
-      vector<Coord> v = p.moves(Coord(i,j),b,0);
+      vector<Coord> v = p.moves(sizes,Coord(i,j),b,0);
       //for_each(v.begin(), v.end(), [](Coord& c){}); //lambda function
       for(const Coord& c : v)
         cout << " " << static_cast<int>(c.first) <<" "<< static_cast<int>(c.second);
@@ -261,12 +253,12 @@ public:
   bool alive() const {
     return value;
   }
-  Coord get() const {
+  Coord get(const Coord& sizes) const {
     assert(value);
     int temp=value-1;
     return Coord(temp/sizes.second, temp%sizes.second);
   }
-  void set(const Coord& l){
+  void set(const Coord& sizes, const Coord& l){
     value=1+static_cast<int>(l.first)*sizes.second+l.second;
   }
   void kill(){
@@ -328,7 +320,7 @@ typedef int16_t Value;
 
 class Table {
 // dimensions = 1+MAX_PIECES
-  //Value table[2][POSITION_POSSIBILITIES][POSITION_POSSIBILITIES][POSITION_POSSIBILITIES][POSITION_POSSIBILITIES];
+
   vector<vector<vector<vector<vector<Value> > > > > table;
 public:
   Table(int z) : table(2, vector<vector<vector<vector<Value> > > >
@@ -351,17 +343,20 @@ public:
   }
 };
 
-#define forR(v) for(int v=0;v<POSITION_POSSIBILITIES;++v)
 ostream& operator<<(ostream& os, const Table& table){
   for(int player=0;player<=1;++player){
-    forR(i0)forR(i1)forR(i2)forR(i3){
-      Value v=table.table[player][i0][i1][i2][i3];
-      if(v)
-        os << player << " " << i0 << " " << i1 << " " << i2 << " " << i3 << " " << v << endl;
-    }
+    for(unsigned i0=0;i0<table.table[0].size();++i0)
+      for(unsigned i1=0;i1<table.table[0][i0].size();++i1)
+        for(unsigned i2=0;i2<table.table[0][i0][i1].size();++i2)
+          for(unsigned i3=0;i3<table.table[0][i0][i1][i2].size();++i3){
+            Value v=table.table[player][i0][i1][i2][i3];
+            if(v)
+              os << player << " " << i0 << " " << i1 << " " << i2 << " " << i3 << " " << v << endl;
+          }
   }
   return os;
 }
+#define forR(v) for(int v=0;v<position_possibilities;++v)
 
 
 inline bool has_king(const Directory& dir, const MovePosition& mp){
@@ -371,12 +366,12 @@ inline bool has_king(const Directory& dir, const MovePosition& mp){
   return false;
 }
 
-void fill_board(Bitboard *board, const Directory& dir, const Position& pos){
-  for(unsigned int i=0;i<dir.size();++i)
+void fill_board(Bitboard *board, const Parameters& param, const Position& pos){
+  for(unsigned int i=0;i<param.dir.size();++i)
     if(pos[i].alive()){
-      Coord xy=pos[i].get();
+      Coord xy=pos[i].get(param.sizes);
       assert(board->b[xy.first][xy.second]==0);
-      board->b[xy.first][xy.second]=1|(dir[i].color<<1)|(i<<2);
+      board->b[xy.first][xy.second]=1|(param.dir[i].color<<1)|(i<<2);
     }
 }
 
@@ -384,18 +379,18 @@ Color other(Color x){
   return static_cast<Color>(1-x);
 }
 
-vector<MovePosition> successors(const Directory& dir, const MovePosition& mp){
+vector<MovePosition> successors(const Parameters& param, const MovePosition& mp){
   vector<MovePosition> answer;
-  if(!has_king(dir,mp))
+  if(!has_king(param.dir,mp))
     return answer;
-  Bitboard board(sizes);
-  fill_board(&board,dir,mp.position);
-  for(unsigned i=0;i<dir.size();++i){
-    if(dir[i].color == mp.to_move && mp.position[i].alive()){
-      for(const Coord& newloc : dir[i].moves(mp.position[i].get(), board, mp.to_move)){
+  Bitboard board(param.sizes);
+  fill_board(&board,param,mp.position);
+  for(unsigned i=0;i<param.dir.size();++i){
+    if(param.dir[i].color == mp.to_move && mp.position[i].alive()){
+      for(const Coord& newloc : param.dir[i].moves(param.sizes,mp.position[i].get(param.sizes), board, mp.to_move)){
         MovePosition next(mp);
         next.to_move= other(mp.to_move);
-        next.position[i].set(newloc);
+        next.position[i].set(param.sizes,newloc);
         if(board.occupied(newloc)) { // capture
           next.position[board.index(newloc)].kill();
         }
@@ -406,29 +401,29 @@ vector<MovePosition> successors(const Directory& dir, const MovePosition& mp){
   return answer;
 }
 
-MovePosition gen_qr_test_position(){
+MovePosition gen_qr_test_position(const Coord& sizes){
   MovePosition answer;
   const int8_t pos_qr_arr[4][2]=
     //{{3,2},{2,0},{1,2},{1,1}};  //longest(4,3)
     {{0,0},{0,1},{1,0},{1,1}};
   answer.to_move=White;
   for(int i=0;i<4;++i){
-    answer.position[i].set(Coord(pos_qr_arr[i][0],pos_qr_arr[i][1]));
+    answer.position[i].set(sizes,Coord(pos_qr_arr[i][0],pos_qr_arr[i][1]));
   }
   return answer;
 }
 
-void recursive_successors_test(const Directory& dir, int depth, const MovePosition& start){
+void recursive_successors_test(const Parameters& param, int depth, const MovePosition& start){
   if(depth==0)
     ; //cout << start << endl;
   else {
     cout << "# (depth " << depth << ") " << endl;
     cout << start;
-    for(const MovePosition& p : successors(dir, start))
+    for(const MovePosition& p : successors(param, start))
       cout << " " << p;
     cout << endl;
-    for(const MovePosition& p : successors(dir, start))
-      recursive_successors_test(dir,depth-1,p);
+    for(const MovePosition& p : successors(param, start))
+      recursive_successors_test(param,depth-1,p);
   }
 }
 
@@ -445,7 +440,7 @@ void backward_the_easy_way(Value *v){
   // but -1 allows mate in 32000
 }
 
-bool update_table_entry(const Directory& dir, Table* table, const MovePosition& p){
+bool update_table_entry(const Parameters& param, Table* table, const MovePosition& p){
   Value old_value=table->lookup(p);
 #ifdef NDEBUG
   if(old_value)return false;
@@ -453,7 +448,7 @@ bool update_table_entry(const Directory& dir, Table* table, const MovePosition& 
   if(old_value==LOSS) return false;
   //also need to avoid going beyond stalemate XXX
 #endif
-  vector<MovePosition> succs=successors(dir, p);
+  vector<MovePosition> succs=successors(param, p);
   if(succs.size()==0){
     assert(old_value);  // loss or stalemate
     return false;
@@ -500,9 +495,10 @@ bool update_table_entry(const Directory& dir, Table* table, const MovePosition& 
 #define setpos(n) p.position[n].from_numeric(i##n)
 #define distinct(a,b) (i##a==0 || i##b==0 || i##a!=i##b)
 
-unsigned long update_table(const Directory& dir, Table* table){
+unsigned long update_table(const Parameters& param, Table* table){
   unsigned long improved=0;
   MovePosition p;
+  const int position_possibilities=1+param.sizes.first*param.sizes.second;
   for(int player=0;player<=1;++player){
     p.to_move=static_cast<Color>(player);
     forR(i0) {
@@ -512,14 +508,14 @@ unsigned long update_table(const Directory& dir, Table* table){
         setpos(1);
         forR(i2) {
           //assume always at least 2 pieces
-          if (dir.size()<3 && i2!=0) continue;
+          if (param.dir.size()<3 && i2!=0) continue;
           if(!distinct(2,0) || !distinct (2,1)) continue;
           setpos(2);
           forR(i3){
-            if (dir.size()<4 && i3!=0) continue;
+            if (param.dir.size()<4 && i3!=0) continue;
             if(!distinct(3,0) || !distinct(3,1) || !distinct(3,2)) continue;
             setpos(3);
-            bool code = update_table_entry(dir,table,p);
+            bool code = update_table_entry(param,table,p);
             improved+=code;
           }
         }
@@ -535,37 +531,38 @@ bool currently_the_other_player_has_a_king(const Directory& dir, MovePosition mp
 }
 
 // The player to move can capture the opponent's king / last royal piece.
-bool illegal_position(const Directory& dir, const MovePosition& mp){
-  assert(currently_the_other_player_has_a_king(dir,mp));
-  for(const MovePosition& next : successors(dir,mp)){
-    if(!has_king(dir,next))
+bool illegal_position(const Parameters& param, const MovePosition& mp){
+  assert(currently_the_other_player_has_a_king(param.dir,mp));
+  for(const MovePosition& next : successors(param,mp)){
+    if(!has_king(param.dir,next))
       return true;
   }
   return false;
 }
 
-bool in_check(const Directory& dir, MovePosition mp){
-  assert(has_king(dir,mp));
+bool in_check(const Parameters& param, MovePosition mp){
+  assert(has_king(param.dir,mp));
   mp.to_move=other(mp.to_move);
-  return illegal_position(dir,mp);
+  return illegal_position(param,mp);
 }
 
-bool no_legal_moves(const Directory& dir, const MovePosition& mp){
-  for(const MovePosition& next: successors(dir,mp))
-    if(!illegal_position(dir,next))
+bool no_legal_moves(const Parameters& param , const MovePosition& mp){
+  for(const MovePosition& next: successors(param,mp))
+    if(!illegal_position(param,next))
       return false;
   return true;
 }
 
-bool stalemate(const Directory& dir, const MovePosition& mp){
-  if(!has_king(dir,mp)) return false;
-  return (!in_check(dir,mp)) && no_legal_moves(dir,mp);
+bool stalemate(const Parameters& param, const MovePosition& mp){
+  if(!has_king(param.dir,mp)) return false;
+  return (!in_check(param,mp)) && no_legal_moves(param,mp);
 }
 
-unsigned long mark_terminal_nodes(const Directory& dir,Table* table){
+unsigned long mark_terminal_nodes(const Parameters& param,Table* table){
   unsigned long total=0;
   unsigned long numterminal=0;
   MovePosition p;
+  const int position_possibilities=1+param.sizes.first*param.sizes.second;
   for(int player=0;player<=1;++player){
     p.to_move=static_cast<Color>(player);
     forR(i0) {
@@ -575,20 +572,20 @@ unsigned long mark_terminal_nodes(const Directory& dir,Table* table){
         setpos(1);
         forR(i2){
           //assume always at least 2 pieces
-          if (dir.size()<3 && i2!=0) continue;
+          if (param.dir.size()<3 && i2!=0) continue;
           if(!distinct(2,0) || !distinct (2,1)) continue;
           setpos(2);
           forR(i3) {
-            if (dir.size()<4 && i3!=0) continue;
+            if (param.dir.size()<4 && i3!=0) continue;
             if(!distinct(3,0) || !distinct(3,1) || !distinct(3,2)) continue;
             setpos(3);
             ++total;
             assert(table->lookup(p)==0);
 
-            if(stalemate_draw && stalemate(dir,p)){
+            if(stalemate_draw && stalemate(param,p)){
               table->set(p,DRAW);
               numterminal++;
-            }else if(successors(dir,p).size()==0){
+            }else if(successors(param,p).size()==0){
               table->set(p,LOSS);
               numterminal++;
               //cout << p << endl;
@@ -608,10 +605,13 @@ int main(int argc, char**argv){
     return 1;
   }
   Parameters param;
-  param.sizes=Coord(4,3);
+  param.sizes=Coord(4,3);  //larger board sizes need to ulimit -s
   param.dir=dir_kmk;
 
-  cout << "#size = " << static_cast<int>(sizes.first) << " " << static_cast<int>(sizes.second) << endl;
+  int8_t ACTUAL_SIZE=param.sizes.first*param.sizes.second;
+  int8_t POSITION_POSSIBILITIES=ACTUAL_SIZE+1; // or piece is nowhere
+
+  cout << "#size = " << static_cast<int>(param.sizes.first) << " " << static_cast<int>(param.sizes.second) << endl;
   cout << "#stalemate_draw = " << stalemate_draw << endl;
   for(const Piece& p : param.dir)
     cout << "#" << p.toString() << endl;
@@ -623,7 +623,7 @@ int main(int argc, char**argv){
     //for(int p_index=0;p_index<static_cast<int>(sizeof(all_pieces)/sizeof(Piece));++p_index)
     //for_each(all_pieces.begin(), all_pieces.end(), [](Piece &p){ printlocs(p); });
     for(const Piece& p : all_pieces)
-      printlocs(p);
+      printlocs(param.sizes,p);
   } else if (0==strcmp(argv[1],"printp")){
     for(const Piece& p : all_pieces){
       cout << p.toString();
@@ -635,11 +635,11 @@ int main(int argc, char**argv){
     assert(other(White)==Black);
     assert(other(Black)==White);
   } else if (0==strcmp(argv[1],"succtest")){
-    MovePosition start=gen_qr_test_position();
+    MovePosition start=gen_qr_test_position(param.sizes);
     int depth=1;
     if(argc>2)
       depth=atoi(argv[2]);
-    recursive_successors_test(param.dir,depth,start);
+    recursive_successors_test(param,depth,start);
   } else if(0==strcmp(argv[1],"valuetest")){
     cout << LOSS << endl;
     Value i=LOSS, i2=LOSS;
@@ -650,13 +650,13 @@ int main(int argc, char**argv){
     }
   } else if(0==strcmp(argv[1],"terminal")){
     Table egtb(POSITION_POSSIBILITIES);
-    mark_terminal_nodes(param.dir,&egtb);
+    mark_terminal_nodes(param,&egtb);
     cout << egtb;
   } else if(0==strcmp(argv[1],"go")){
     Table egtb(POSITION_POSSIBILITIES);
-    unsigned long running_sum=mark_terminal_nodes(param.dir,&egtb);
+    unsigned long running_sum=mark_terminal_nodes(param,&egtb);
     unsigned long how_many_updated;
-    while((how_many_updated=update_table(param.dir,&egtb))){
+    while((how_many_updated=update_table(param,&egtb))){
       running_sum+=how_many_updated;
       //cout << how_many_updated << endl;
     }
