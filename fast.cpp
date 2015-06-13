@@ -11,11 +11,15 @@
 
 using namespace std;
 
-const int8_t num_columns=5;
-const int8_t num_rows=5;
+const int8_t num_columns=4;
+const int8_t num_rows=4;
 //larger board sizes need to ulimit -s
+
+const bool stalemate_draw=true;
 const int8_t ACTUAL_SIZE=num_rows*num_columns;
 const int8_t POSITION_POSSIBILITIES=ACTUAL_SIZE+1; // or piece is nowhere
+
+// todo: not hardcode board size, number of pieces
 
 typedef pair <int8_t,int8_t> Coord;
 
@@ -486,41 +490,6 @@ bool update_table_entry(const Directory& dir, Table* table, const MovePosition& 
 #define setpos(n) p.position[n].from_numeric(i##n)
 #define distinct(a,b) (i##a==ACTUAL_SIZE || i##b==ACTUAL_SIZE || i##a!=i##b)
 
-unsigned long mark_terminal_nodes(const Directory& dir,Table* table){
-  unsigned long total=0;
-  unsigned long numterminal=0;
-  MovePosition p;
-  for(int player=0;player<=1;++player){
-    p.to_move=static_cast<Color>(player);
-    assert(NUM_PIECES==4);
-    forR(i0) {
-      setpos(0);
-      forR(i1)
-        if(distinct(1,0)){
-          setpos(1);
-          forR(i2)
-            if(distinct(2,0) && distinct (2,1)){
-              setpos(2);
-              forR(i3)
-                if(distinct(3,0) && distinct(3,1) && distinct(3,2)){
-                  setpos(3);
-                  ++total;
-                  assert(table->lookup(p)==0);
-                  // deal with stalemate here XXX
-                  if(successors(dir,p).size()==0){
-                    table->set(p,LOSS);
-                    numterminal++;
-                    //cout << p << endl;
-                  }
-                }
-            }
-        }
-    }
-  }
-  cout << "#mark_terminal_nodes " << numterminal << " " << total << endl;
-  return numterminal;
-}
-
 unsigned long update_table(const Directory& dir, Table* table){
   unsigned long improved=0;
   MovePosition p;
@@ -546,6 +515,77 @@ unsigned long update_table(const Directory& dir, Table* table){
     }
   }
   return improved;
+}
+
+bool currently_the_other_player_has_a_king(const Directory& dir, MovePosition mp){
+  mp.to_move=other(mp.to_move);
+  return has_king(dir,mp);
+}
+
+// The player to move can capture the opponent's king / last royal piece.
+bool illegal_position(const Directory& dir, const MovePosition& mp){
+  assert(currently_the_other_player_has_a_king(dir,mp));
+  for(const MovePosition& next : successors(dir,mp)){
+    if(!has_king(dir,next))
+      return true;
+  }
+  return false;
+}
+
+bool in_check(const Directory& dir, MovePosition mp){
+  assert(has_king(dir,mp));
+  mp.to_move=other(mp.to_move);
+  return illegal_position(dir,mp);
+}
+
+bool no_legal_moves(const Directory& dir, const MovePosition& mp){
+  for(const MovePosition& next: successors(dir,mp))
+    if(!illegal_position(dir,next))
+      return false;
+  return true;
+}
+
+bool stalemate(const Directory& dir, const MovePosition& mp){
+  if(!has_king(dir,mp)) return false;
+  return (!in_check(dir,mp)) && no_legal_moves(dir,mp);
+}
+
+unsigned long mark_terminal_nodes(const Directory& dir,Table* table){
+  unsigned long total=0;
+  unsigned long numterminal=0;
+  MovePosition p;
+  for(int player=0;player<=1;++player){
+    p.to_move=static_cast<Color>(player);
+    assert(NUM_PIECES==4);
+    forR(i0) {
+      setpos(0);
+      forR(i1)
+        if(distinct(1,0)){
+          setpos(1);
+          forR(i2)
+            if(distinct(2,0) && distinct (2,1)){
+              setpos(2);
+              forR(i3)
+                if(distinct(3,0) && distinct(3,1) && distinct(3,2)){
+                  setpos(3);
+                  ++total;
+                  assert(table->lookup(p)==0);
+
+                  if(stalemate_draw && stalemate(dir,p)){
+                    table->set(p,DRAW);
+                    numterminal++;
+                  }else if(successors(dir,p).size()==0){
+                    table->set(p,LOSS);
+                    numterminal++;
+                    //cout << p << endl;
+                  }
+                }
+            }
+        }
+    }
+  }
+  cout << "#mark_terminal_nodes " << numterminal << " " << total << endl;
+  return numterminal;
 }
 
 int main(int argc, char**argv){
@@ -587,6 +627,7 @@ int main(int argc, char**argv){
   } else if(0==strcmp(argv[1],"terminal")){
     Table egtb;
     mark_terminal_nodes(test_directory,&egtb);
+    cout << egtb;
   } else if(0==strcmp(argv[1],"go")){
     Table egtb;
     unsigned long running_sum=mark_terminal_nodes(test_directory,&egtb);

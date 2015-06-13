@@ -57,6 +57,7 @@ main = do {
 ["v1"] -> verify_piece_locs;
 ["v2"] -> verify_successors;
 ["dump"] -> mapM_ (putStrLn . unwords . map show . table_line) $ concat all_list;
+["terminal"] -> mapM_ (putStrLn . unwords . map show . table_line) gen_0;
 ["testretro"] -> print $ and $ map (test_retro2 test_directory) $ all_positions test_directory;
 _ -> error "need args";
 }};

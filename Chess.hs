@@ -22,7 +22,7 @@ stalemate_draw :: Bool;
 stalemate_draw = True;
 
 pass_permitted :: Bool;
-pass_permitted = True;
+pass_permitted = False;
 
 -- no stalemate
 -- 43 = 2.5 min
@@ -32,7 +32,7 @@ pass_permitted = True;
 
 -- test directory
 test_directory :: Directory;
-test_directory = dir_nn;
+test_directory = dir_qr;
 
 max_row :: Row;
 max_row = Row $ pred $ snd my_boardsize;
@@ -448,7 +448,6 @@ checkmate :: Directory -> MovePosition -> Bool;
 checkmate dir mp = in_check dir mp && no_legal_moves dir mp;
 
 stalemates :: Directory -> [Entry];
--- stalemates _dir = [];
 stalemates dir = do {
  mp <- all_positions dir;
  guard $ has_king dir mp;
