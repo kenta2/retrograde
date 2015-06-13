@@ -13,9 +13,7 @@ using namespace std;
 
 typedef pair <int8_t,int8_t> Coord;
 
-const int SPECIAL_sizes_first=4; //workaround for not possible for array dimensions
-const int SPECIAL_sizes_second=3;
-const Coord sizes(SPECIAL_sizes_first,SPECIAL_sizes_second);
+const Coord sizes(4,3);
 
 //larger board sizes need to ulimit -s
 
@@ -49,9 +47,11 @@ enum Color { White, Black};
 
 class Bitboard{
 public:
-  uint8_t b[SPECIAL_sizes_first][SPECIAL_sizes_second];
-
-  Bitboard() : b {0}
+  vector<vector<uint8_t> > b;
+  const Coord sizes;
+  Bitboard(Coord dimensions)
+    : b(dimensions.first, vector<uint8_t>(dimensions.second)),
+      sizes(dimensions)
   {}
   bool occupied(const Coord& p) const {
     return b[p.first][p.second];
@@ -240,7 +240,7 @@ vector<Piece> all_pieces{
 };
 
 void printlocs(const Piece& p){
-  Bitboard b;
+  Bitboard b(sizes);
   for(int8_t i=0;i<sizes.first;++i)
     for(int8_t j=0;j<sizes.second;++j){
       assert(!b.occupied(Coord(i,j)));
@@ -385,7 +385,7 @@ vector<MovePosition> successors(const Directory& dir, const MovePosition& mp){
   vector<MovePosition> answer;
   if(!has_king(dir,mp))
     return answer;
-  Bitboard board;
+  Bitboard board(sizes);
   fill_board(&board,dir,mp.position);
   for(unsigned i=0;i<dir.size();++i){
     if(dir[i].color == mp.to_move && mp.position[i].alive()){
