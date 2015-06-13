@@ -254,18 +254,25 @@ void printlocs(const Piece& p){
 
 class MaybeLocation {
   Coord l;
+  bool is_alive;
 public:
-  bool alive;
+  bool alive() const {
+    return is_alive;
+  }
   Coord get() const {
-    assert(alive);
+    assert(is_alive);
     return l;
   }
   void set(const Coord& c){
-    assert(alive);
+    //assert(is_alive);
+    is_alive=true;
     l=c;
   }
+  void kill(){
+    is_alive=false;
+  }
   int to_numeric() const {
-    if(alive){
+    if(is_alive){
       assert(in_bounds(l));
       return 1+static_cast<int>(l.first)*num_rows+l.second;
     }else
@@ -273,9 +280,9 @@ public:
   }
   void from_numeric(int input){
     if(input==0)
-      alive=false;
+      is_alive=false;
     else {
-      alive=true;
+      is_alive=true;
       input--;
       l.second=input%num_rows;
       l.first=input/num_rows;
@@ -366,14 +373,14 @@ ostream& operator<<(ostream& os, const Table& table){
 
 inline bool has_king(const Directory& dir, const MovePosition& mp){
   for(unsigned int i=0;i<dir.size();++i)
-    if (dir[i].color==mp.to_move && dir[i].is_royal && mp.position[i].alive)
+    if (dir[i].color==mp.to_move && dir[i].is_royal && mp.position[i].alive())
       return true;
   return false;
 }
 
 void fill_board(Bitboard *board, const Directory& dir, const Position& pos){
   for(unsigned int i=0;i<dir.size();++i)
-    if(pos[i].alive){
+    if(pos[i].alive()){
       Coord xy=pos[i].get();
       assert(board->b[xy.first][xy.second]==0);
       board->b[xy.first][xy.second]=1|(dir[i].color<<1)|(i<<2);
@@ -391,13 +398,13 @@ vector<MovePosition> successors(const Directory& dir, const MovePosition& mp){
   Bitboard board;
   fill_board(&board,dir,mp.position);
   for(unsigned i=0;i<dir.size();++i){
-    if(dir[i].color == mp.to_move && mp.position[i].alive){
+    if(dir[i].color == mp.to_move && mp.position[i].alive()){
       for(const Coord& newloc : dir[i].moves(mp.position[i].get(), board, mp.to_move)){
         MovePosition next(mp);
         next.to_move= other(mp.to_move);
         next.position[i].set(newloc);
         if(board.occupied(newloc)) { // capture
-          next.position[board.index(newloc)].alive=false;
+          next.position[board.index(newloc)].kill();
         }
         answer.push_back(next);
       }
@@ -413,7 +420,6 @@ MovePosition gen_qr_test_position(){
     {{0,0},{0,1},{1,0},{1,1}};
   answer.to_move=White;
   for(int i=0;i<4;++i){
-    answer.position[i].alive=true;
     answer.position[i].set(Coord(pos_qr_arr[i][0],pos_qr_arr[i][1]));
   }
   return answer;
