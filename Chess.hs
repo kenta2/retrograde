@@ -16,7 +16,7 @@ import Data.Ord;
 import System.Random(randomRIO);
 
 my_boardsize :: (Integer,Integer);
-my_boardsize = (4,4);  -- col row
+my_boardsize = (4,3);  -- col row
 
 stalemate_draw :: Bool;
 stalemate_draw = False;
@@ -32,7 +32,7 @@ pass_permitted = False;
 
 -- test directory
 test_directory :: Directory;
-test_directory = dir_n;
+test_directory = dir_kmk;
 
 max_row :: Row;
 max_row = Row $ pred $ snd my_boardsize;
@@ -638,12 +638,12 @@ case (max_row, max_column) of
 {(Row rmax, Column cmax) -> (rmax+1, cmax+1)};
 maxsize = num_rows * num_columns
 }
-in if n == maxsize
+in if n == 0
 then Nothing
 else if n > maxsize
 then error "too big location_from_integer"
 else let {
-ans = divMod n num_rows;
+ans = divMod (n-1) num_rows;
 } in Just $ Location (Column $ fst ans, Row $ snd ans);
 
 read_moveposition :: [Integer] -> MovePosition;
@@ -669,14 +669,9 @@ recursive_successors 0 p = [p];
 recursive_successors n p = concatMap (recursive_successors $ pred n) $ successors test_directory p;
 
 location_to_integer :: Maybe Location -> Integer;
-location_to_integer l = let
-{(num_rows, num_columns) =
-case (max_row, max_column) of
-{(Row rmax, Column cmax) -> (rmax+1, cmax+1)};
-maxsize = num_rows * num_columns
-} in case l of {
-Nothing -> maxsize;
-Just (Location (Column c, Row r)) -> c*num_rows +r;
+location_to_integer l = case l of {
+Nothing -> 0;
+Just (Location (Column c, Row r)) -> 1+ c*(case max_row of {Row n -> n} + 1) +r;
 };
 
 position_to_integer :: MovePosition -> [Integer];

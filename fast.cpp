@@ -12,7 +12,7 @@
 using namespace std;
 
 const int8_t num_columns=4;
-const int8_t num_rows=4;
+const int8_t num_rows=3;
 //larger board sizes need to ulimit -s
 
 const bool stalemate_draw=false;
@@ -267,15 +267,16 @@ public:
   int to_numeric() const {
     if(alive){
       assert(in_bounds(l));
-      return static_cast<int>(l.first)*num_rows+l.second;
+      return 1+static_cast<int>(l.first)*num_rows+l.second;
     }else
-      return static_cast<int>(num_rows)*num_columns;
+      return 0;
   }
   void from_numeric(int input){
-    if(input==static_cast<int>(num_rows)*num_columns)
+    if(input==0)
       alive=false;
     else {
       alive=true;
+      input--;
       l.second=input%num_rows;
       l.first=input/num_rows;
     }
@@ -302,7 +303,10 @@ Directory dir_qr{king(White),king(Black),
 Directory dir_n{king(White),king(Black),
     Piece(Orthogonal::NoOrthogonal, Diagonal::NoDiagonal, Knight::YesKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, White, false)};
 
-Directory test_directory(dir_qr);
+Directory dir_kmk{king(White),king(Black),
+    Piece(Orthogonal::Wazir, Diagonal::Ferz, Knight::NoKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, White, false)};
+
+Directory test_directory(dir_kmk);
 
 const int MAX_PIECES=4;
 typedef MaybeLocation Position[MAX_PIECES];
@@ -495,7 +499,7 @@ bool update_table_entry(const Directory& dir, Table* table, const MovePosition& 
 }
 
 #define setpos(n) p.position[n].from_numeric(i##n)
-#define distinct(a,b) (i##a==ACTUAL_SIZE || i##b==ACTUAL_SIZE || i##a!=i##b)
+#define distinct(a,b) (i##a==0 || i##b==0 || i##a!=i##b)
 
 unsigned long update_table(const Directory& dir, Table* table){
   unsigned long improved=0;
@@ -509,11 +513,11 @@ unsigned long update_table(const Directory& dir, Table* table){
         setpos(1);
         forR(i2) {
           //assume always at least 2 pieces
-          if (dir.size()<3 && i2!=ACTUAL_SIZE) continue;
+          if (dir.size()<3 && i2!=0) continue;
           if(!distinct(2,0) || !distinct (2,1)) continue;
           setpos(2);
           forR(i3){
-            if (dir.size()<4 && i3!=ACTUAL_SIZE) continue;
+            if (dir.size()<4 && i3!=0) continue;
             if(!distinct(3,0) || !distinct(3,1) || !distinct(3,2)) continue;
             setpos(3);
             bool code = update_table_entry(dir,table,p);
@@ -572,11 +576,11 @@ unsigned long mark_terminal_nodes(const Directory& dir,Table* table){
         setpos(1);
         forR(i2){
           //assume always at least 2 pieces
-          if (dir.size()<3 && i2!=ACTUAL_SIZE) continue;
+          if (dir.size()<3 && i2!=0) continue;
           if(!distinct(2,0) || !distinct (2,1)) continue;
           setpos(2);
           forR(i3) {
-            if (dir.size()<4 && i3!=ACTUAL_SIZE) continue;
+            if (dir.size()<4 && i3!=0) continue;
             if(!distinct(3,0) || !distinct(3,1) || !distinct(3,2)) continue;
             setpos(3);
             ++total;
