@@ -16,7 +16,7 @@ import Data.Ord;
 import System.Random(randomRIO);
 
 my_boardsize :: (Integer,Integer);
-my_boardsize = (4,3);  -- col row
+my_boardsize = (8,8);  -- col row
 
 stalemate_draw :: Bool;
 stalemate_draw = False;
@@ -32,7 +32,7 @@ pass_permitted = False;
 
 -- test directory
 test_directory :: Directory;
-test_directory = dir_kmk;
+test_directory = dir_qr;
 
 max_row :: Row;
 max_row = Row $ pred $ snd my_boardsize;
@@ -710,5 +710,10 @@ is_comment _ = False;
 
 zip_map :: (a -> b) -> [a] -> [(a,b)];
 zip_map f l = zip l $ map f l;
+
+mate_distance :: Value -> Integer;
+mate_distance (Value n) = if n>0
+then div n 2-1
+else error "need positive Value";
 
 } --end

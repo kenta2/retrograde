@@ -293,6 +293,13 @@ const Directory dir_n{king(White),king(Black),
 const Directory dir_kmk{king(White),king(Black),
     Piece(Orthogonal::Wazir, Diagonal::Ferz, Knight::NoKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, White, false)};
 
+const Directory dir_bk{king(White),king(Black),
+    Piece(Orthogonal::NoOrthogonal, Diagonal::Bishop, Knight::NoKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, White, false),
+    Piece(Orthogonal::NoOrthogonal, Diagonal::NoDiagonal, Knight::YesKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, White, false)};
+
+const Directory dir_rn{king(White),king(Black),
+    Piece(Orthogonal::Rook, Diagonal::NoDiagonal, Knight::NoKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, White, false),
+    Piece(Orthogonal::NoOrthogonal, Diagonal::NoDiagonal, Knight::YesKnight, Alfil::NoAlfil, Dabbaba::NoDabbaba, Black, false)};
 
 const int MAX_PIECES=4;
 typedef MaybeLocation Position[MAX_PIECES];
@@ -311,6 +318,19 @@ ostream& operator<<(ostream& os, const MovePosition& object){
 }
 
 typedef int16_t Value;
+const Value LOSS = static_cast<Value>(0x8001);
+const Value DRAW = 1;
+
+void backward_the_easy_way(Value *v){
+  assert(*v);
+  if ((*v)==DRAW) return;
+  if((*v)<0)
+    (*v)=-(*v);
+  else
+    (*v)=-((*v)-1);  //-4 replicates backward_the_hard_way
+  // but -1 allows mate in 32000
+}
+
 
 class Table {
 // dimensions = 1+MAX_PIECES
@@ -335,6 +355,23 @@ public:
   void set(const MovePosition&p, Value v){
     INDEX = v;
   }
+  Value find_longest() const {
+    Value longest=LOSS;
+    backward_the_easy_way(&longest);
+    for(int player=0;player<=1;++player){
+      for(unsigned i0=0;i0<table[0].size();++i0)
+        for(unsigned i1=0;i1<table[0][i0].size();++i1)
+          for(unsigned i2=0;i2<table[0][i0][i1].size();++i2)
+            for(unsigned i3=0;i3<table[0][i0][i1][i2].size();++i3){
+              Value v=table[player][i0][i1][i2][i3];
+              if(v>DRAW && v<longest){
+                longest=v;
+                cout << player << " " << i0 << " " << i1 << " " << i2 << " " << i3 << " " << v << endl;
+              }
+            }
+    }
+    return longest;
+  }
 };
 
 ostream& operator<<(ostream& os, const Table& table){
@@ -350,6 +387,7 @@ ostream& operator<<(ostream& os, const Table& table){
   }
   return os;
 }
+
 
 inline bool has_king(const Directory& dir, const MovePosition& mp){
   for(unsigned int i=0;i<dir.size();++i)
@@ -417,19 +455,6 @@ void recursive_successors_test(const Parameters& param, int depth, const MovePos
     for(const MovePosition& p : successors(param, start))
       recursive_successors_test(param,depth-1,p);
   }
-}
-
-const Value LOSS = static_cast<Value>(0x8001);
-const Value DRAW = 1;
-
-void backward_the_easy_way(Value *v){
-  assert(*v);
-  if ((*v)==DRAW) return;
-  if((*v)<0)
-    (*v)=-(*v);
-  else
-    (*v)=-((*v)-1);  //-4 replicates backward_the_hard_way
-  // but -1 allows mate in 32000
 }
 
 bool currently_the_other_player_has_a_king(const Directory& dir, MovePosition mp){
@@ -597,14 +622,39 @@ unsigned long mark_terminal_nodes(const Parameters& param,Table* table){
 #undef setpos
 #undef distinct
 
+bool compare_dimensions(const Coord x, const Coord y){
+  return x.first*x.second < y.first*y.second;
+}
+
+void try_n_sizes(){
+  vector< Coord > sz;
+  for(int i=2;i<50;i++)
+    for(int j=2;j<=i;j++){
+      if(i*j>100) continue;
+      sz.push_back(Coord(i,j));
+    }
+  sort(sz.begin(),sz.end(),compare_dimensions);
+  for(const Coord& xy : sz){
+    Parameters param;
+    param.sizes=xy;
+    param.dir=dir_n;
+    param.stalemate_draw=false;
+    int8_t ACTUAL_SIZE=param.sizes.first*param.sizes.second;
+    int8_t POSITION_POSSIBILITIES=ACTUAL_SIZE+1; // or piece is nowhere
+    Table egtb(POSITION_POSSIBILITIES);
+    while(update_table(param,&egtb));
+    cout << xy << " " << egtb.find_longest() << endl;
+  }
+}
+
 int main(int argc, char**argv){
   if(argc<2){
     cerr << "need args"<< endl;
     return 1;
   }
   Parameters param;
-  param.sizes=Coord(4,3);
-  param.dir=dir_kmk;
+  param.sizes=Coord(4,4);
+  param.dir=dir_n;
   param.stalemate_draw=false;
 
   int8_t ACTUAL_SIZE=param.sizes.first*param.sizes.second;
@@ -661,6 +711,18 @@ int main(int argc, char**argv){
     }
     cout << "#running_sum " << running_sum << endl;
     cout << egtb;
+  } else if(0==strcmp(argv[1],"longest")){
+    Table egtb(POSITION_POSSIBILITIES);
+    unsigned long running_sum=mark_terminal_nodes(param,&egtb);
+    unsigned long how_many_updated;
+    for(int cycle=0;(how_many_updated=update_table(param,&egtb));++cycle){
+      running_sum+=how_many_updated;
+      cout << "#how_many_updated " << cycle << " " << how_many_updated << endl;
+    }
+    cout << "#running_sum " << running_sum << endl;
+    egtb.find_longest();
+  } else if(0==strcmp(argv[1],"many-longest")){
+    try_n_sizes();
   }else {
     cerr << "unknown arg" << endl;
   }
