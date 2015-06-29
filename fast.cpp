@@ -18,6 +18,10 @@ ostream& operator<<(ostream &os, const Coord& c){
   return os;
 }
 
+inline int coord_prod(const Coord& c){
+  return static_cast<int>(c.first)*c.second;
+}
+
 const Coord dir_orthogonal[]={Coord(0,1),Coord(1,0),Coord(-1,0),Coord(0,-1)};
 const Coord dir_diagonal[]={Coord(1,1),Coord(1,-1),Coord(-1,1),Coord(-1,-1)};
 
@@ -623,27 +627,42 @@ unsigned long mark_terminal_nodes(const Parameters& param,Table* table){
 #undef distinct
 
 bool compare_dimensions(const Coord x, const Coord y){
-  return x.first*x.second < y.first*y.second;
+  int px=coord_prod(x);
+  int py=coord_prod(y);
+  if(px==py)
+    return x.first<y.first;
+  else return px<py;
+}
+
+int mate_distance(Value v){
+  if (v<=DRAW)
+    return (-1);
+  else return (32767-v);
 }
 
 void try_n_sizes(){
   vector< Coord > sz;
-  for(int i=2;i<50;i++)
+  for(int i=2;i<127;i++)
     for(int j=2;j<=i;j++){
-      if(i*j>100) continue;
+#ifdef ALREADY_CALCULATED
+      if(i*j<ALREADY_CALCULATED) continue;
+#endif
       sz.push_back(Coord(i,j));
     }
   sort(sz.begin(),sz.end(),compare_dimensions);
   for(const Coord& xy : sz){
+    cout << "#starting " << xy << endl;
     Parameters param;
     param.sizes=xy;
     param.dir=dir_n;
     param.stalemate_draw=false;
-    int8_t ACTUAL_SIZE=param.sizes.first*param.sizes.second;
-    int8_t POSITION_POSSIBILITIES=ACTUAL_SIZE+1; // or piece is nowhere
+    int ACTUAL_SIZE=coord_prod(param.sizes);
+    int POSITION_POSSIBILITIES=ACTUAL_SIZE+1; // or piece is nowhere
     Table egtb(POSITION_POSSIBILITIES);
+    mark_terminal_nodes(param,&egtb);
     while(update_table(param,&egtb));
-    cout << xy << " " << egtb.find_longest() << endl;
+    cout << "answer " << xy << " " << mate_distance(egtb.find_longest()) << endl;
+    cout.flush();
   }
 }
 
@@ -657,8 +676,8 @@ int main(int argc, char**argv){
   param.dir=dir_n;
   param.stalemate_draw=false;
 
-  int8_t ACTUAL_SIZE=param.sizes.first*param.sizes.second;
-  int8_t POSITION_POSSIBILITIES=ACTUAL_SIZE+1; // or piece is nowhere
+  int ACTUAL_SIZE=static_cast<int>(param.sizes.first)*param.sizes.second;
+  int POSITION_POSSIBILITIES=ACTUAL_SIZE+1; // or piece is nowhere
 
   cout << "#size = " << static_cast<int>(param.sizes.first) << " " << static_cast<int>(param.sizes.second) << endl;
   cout << "#stalemate_draw = " << param.stalemate_draw << endl;
