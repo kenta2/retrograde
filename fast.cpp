@@ -673,7 +673,7 @@ int main(int argc, char**argv){
   }
   Parameters param;
   param.sizes=Coord(4,4);
-  param.dir=dir_n;
+  param.dir=dir_qr;
   param.stalemate_draw=false;
 
   int ACTUAL_SIZE=static_cast<int>(param.sizes.first)*param.sizes.second;
@@ -731,6 +731,7 @@ int main(int argc, char**argv){
     cout << "#running_sum " << running_sum << endl;
     cout << egtb;
   } else if(0==strcmp(argv[1],"longest")){
+    //0.58 s for qr
     Table egtb(POSITION_POSSIBILITIES);
     unsigned long running_sum=mark_terminal_nodes(param,&egtb);
     unsigned long how_many_updated;

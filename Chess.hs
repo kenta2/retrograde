@@ -16,7 +16,7 @@ import Data.Ord;
 import System.Random(randomRIO);
 
 my_boardsize :: (Integer,Integer);
-my_boardsize = (8,8);  -- col row
+my_boardsize = (4,4);  -- col row
 
 stalemate_draw :: Bool;
 stalemate_draw = False;

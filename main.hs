@@ -52,6 +52,7 @@ main = do {
  putStrLn $ "#pass_permitted " ++ show pass_permitted;
  putStrLn $ "#stalemate is draw " ++ show stalemate_draw;
  getArgs >>= \case {
+-- | 980 seconds for qr
 ["longest"] -> show_longest;
 ["allcpp"] -> putStrLn all_pieces_for_cplusplus;
 ["v1"] -> verify_piece_locs;
